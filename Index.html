@@ -541,6 +541,31 @@
                 </div>
               </div>
             </div>
+
+            <div id="pfw-comp-panel" class="hidden flex flex-col gap-4">
+              <div class="border-t-[4px] border-orange-500 pt-3">
+                <div class="flex justify-between items-center mb-4">
+                  <h4 id="pc-title" class="text-3xl font-extrabold">PFW</h4>
+                  <span id="pc-line-badge" class="hidden px-4 py-2 text-base rounded-md bg-orange-200/60 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 font-bold border border-orange-300/50 dark:border-orange-700/50 shadow-sm cursor-pointer hover:opacity-75 transition-opacity">-</span>
+                </div>
+                <div id="kd-pfw-comp-ref" class="text-4xl lg:text-5xl font-bold mb-4">-</div>
+              </div>
+              <div class="grid grid-cols-3 gap-3">
+                <div class="stat-pill p-4 rounded-xl"><span class="block text-xs font-bold uppercase text-slate-500 mb-1">Cycle Time</span><span id="pc-ct" class="font-black text-xl text-slate-700 dark:text-slate-200">-</span></div>
+                <div class="stat-pill p-4 rounded-xl"><span class="block text-xs font-bold uppercase text-slate-500 mb-1">TRP</span><span id="pc-trp" class="font-black text-xl text-slate-700 dark:text-slate-200">-</span></div>
+                <div class="stat-pill p-4 rounded-xl"><span class="block text-xs font-bold uppercase text-slate-500 mb-1">Shift / Day</span><span id="pc-sd" class="font-black text-xl text-slate-700 dark:text-slate-200">-</span></div>
+              </div>
+              <div id="pc-qty-grid" class="grid grid-cols-5 gap-1 sm:gap-2 text-center"></div>
+              <div class="glass-panel rounded-xl p-5 flex flex-col">
+                <div class="flex justify-between items-end mb-4">
+                  <span id="pc-chart-title" class="text-sm font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Yıllık Hat Doluluk Grafiği (%)</span>
+                  <span class="text-xs font-bold text-slate-500"><span data-i18n="annualCapacity">Yıllık Kapasite:</span> <span id="pc-cap" class="text-slate-800 dark:text-white">-</span></span>
+                </div>
+                <div class="relative w-full h-56 mt-2">
+                  <canvas id="pfwCompChart"></canvas>
+                </div>
+              </div>
+            </div>
           </div>
 
         </div>
@@ -572,6 +597,7 @@
     let eDriveData = [];
     let pfwMap = {};
     let ppcaChartInstance = null;
+    let pfwCompChartInstance = null;
 
     // Hat → Drive klasör linki haritası (anahtar: normalize edilmiş hat adı)
     function lineKey(name) { return String(name).replace(/[^A-Z0-9]/gi,'').toUpperCase(); }
@@ -1302,6 +1328,9 @@
       const isAllDisk = termLower === 'disk';
       const isAllDMF    = termLower === 'dmf';
       const isAllEDrive = termLower === 'e-drive';
+      const isAllPFW = termLower === 'pfw';
+      const isAllSG  = termLower === 'spring guide';
+      const isAllDP  = termLower === 'drive plate';
 
       globalData.forEach(d => {
         const pLineRaw = String(d.ppcaLine  || '').trim();
@@ -1313,7 +1342,7 @@
         const mLine = mLineRaw.toLowerCase();
         const eLine = eLineRaw.toLowerCase();
 
-        if (!isAllPPCA && !isAllDisk && !isAllDMF && !isAllEDrive) {
+        if (!isAllPPCA && !isAllDisk && !isAllDMF && !isAllEDrive && !isAllPFW && !isAllSG && !isAllDP) {
           if (pLine.includes(termLower) && d.ppca) {
             if (!uniqueResults.has('PPCA-' + d.ppca))
               uniqueResults.set('PPCA-' + d.ppca, { type: 'PPCA', label: `PPCA (${d.ppcaLine})`, value: d.ppca, kit: d.kit });
@@ -1329,6 +1358,21 @@
           if (eLine.includes(termLower) && eLineRaw && d.kit) {
             if (!uniqueResults.has('EDrive-' + d.kit))
               uniqueResults.set('EDrive-' + d.kit, { type: 'EDrive', label: `E-Drive (${d.eDriveLine})`, value: d.kit, kit: d.kit });
+          }
+          const _pd = d.dmf ? pfwMap[d.dmf.toUpperCase()] : null;
+          if (_pd) {
+            if (((_pd.pfwLine || '').toLowerCase()).includes(termLower) && _pd.pfw) {
+              if (!uniqueResults.has('PFW-' + _pd.pfw))
+                uniqueResults.set('PFW-' + _pd.pfw, { type: 'PFW', label: `PFW (${_pd.pfwLine})`, value: _pd.pfw, kit: d.kit });
+            }
+            if (((_pd.springGuideLine || '').toLowerCase()).includes(termLower) && _pd.springGuide) {
+              if (!uniqueResults.has('SG-' + _pd.springGuide))
+                uniqueResults.set('SG-' + _pd.springGuide, { type: 'SG', label: `Spring Guide (${_pd.springGuideLine})`, value: _pd.springGuide, kit: d.kit });
+            }
+            if (((_pd.drivePlateLine || '').toLowerCase()).includes(termLower) && _pd.drivePlate) {
+              if (!uniqueResults.has('DP-' + _pd.drivePlate))
+                uniqueResults.set('DP-' + _pd.drivePlate, { type: 'DP', label: `Drive Plate (${_pd.drivePlateLine})`, value: _pd.drivePlate, kit: d.kit });
+            }
           }
         }
 
@@ -1352,6 +1396,19 @@
             if (!lineVolumes.has(key)) lineVolumes.set(key, { type: 'EDrive', lineName: eLineRaw, v26:0, v27:0, v28:0, v29:0, v30:0 });
             const lv = lineVolumes.get(key); lv.v26+=d.vol26; lv.v27+=d.vol27; lv.v28+=d.vol28; lv.v29+=d.vol29; lv.v30+=d.vol30;
           }
+        } else if (isAllPFW || isAllSG || isAllDP) {
+          if (d.dmf) {
+            const pd = pfwMap[d.dmf.toUpperCase()];
+            if (pd) {
+              const _ln = isAllPFW ? pd.pfwLine : isAllSG ? pd.springGuideLine : pd.drivePlateLine;
+              const _tp = isAllPFW ? 'PFW' : isAllSG ? 'SG' : 'DP';
+              if (_ln) {
+                const key = _tp + ':' + _ln.replace(/\s+/g, '').toUpperCase();
+                if (!lineVolumes.has(key)) lineVolumes.set(key, { type: _tp, lineName: _ln, v26:0, v27:0, v28:0, v29:0, v30:0 });
+                const lv = lineVolumes.get(key); lv.v26+=d.vol26; lv.v27+=d.vol27; lv.v28+=d.vol28; lv.v29+=d.vol29; lv.v30+=d.vol30;
+              }
+            }
+          }
         } else {
           if (pLine.includes(termLower) && pLineRaw) {
             const key = 'PPCA:' + pLineRaw.replace(/\s+/g, '').toUpperCase();
@@ -1369,9 +1426,21 @@
             if (!lineVolumes.has(key)) lineVolumes.set(key, { type: 'DMF', lineName: dmfLineRaw, v26:0, v27:0, v28:0, v29:0, v30:0 });
             const lv = lineVolumes.get(key); lv.v26+=d.vol26; lv.v27+=d.vol27; lv.v28+=d.vol28; lv.v29+=d.vol29; lv.v30+=d.vol30;
           }
+          if (d.dmf) {
+            const _pd2 = pfwMap[d.dmf.toUpperCase()];
+            if (_pd2) {
+              [['PFW', _pd2.pfwLine], ['SG', _pd2.springGuideLine], ['DP', _pd2.drivePlateLine]].forEach(([tp, ln]) => {
+                if (ln && ln.toLowerCase().includes(termLower)) {
+                  const key = tp + ':' + ln.replace(/\s+/g, '').toUpperCase();
+                  if (!lineVolumes.has(key)) lineVolumes.set(key, { type: tp, lineName: ln, v26:0, v27:0, v28:0, v29:0, v30:0 });
+                  const lv = lineVolumes.get(key); lv.v26+=d.vol26; lv.v27+=d.vol27; lv.v28+=d.vol28; lv.v29+=d.vol29; lv.v30+=d.vol30;
+                }
+              });
+            }
+          }
         }
 
-        if (!isAllPPCA && !isAllDisk && !isAllDMF && !isAllEDrive) {
+        if (!isAllPPCA && !isAllDisk && !isAllDMF && !isAllEDrive && !isAllPFW && !isAllSG && !isAllDP) {
           const k    = String(d.kit       || '').toLowerCase();
           const p    = String(d.ppca      || '').toLowerCase();
           const disk = String(d.disk      || '').toLowerCase();
@@ -1476,6 +1545,12 @@
             ? 'bg-[#bae6fd] dark:bg-blue-900/40 text-slate-700 dark:text-blue-300 border border-[#7dd3fc] dark:border-blue-800/50'
             : lv.type === 'EDrive'
             ? 'bg-teal-100 dark:bg-teal-900/40 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800/50'
+            : lv.type === 'PFW'
+            ? 'bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 border border-orange-200 dark:border-orange-800/50'
+            : lv.type === 'SG'
+            ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50'
+            : lv.type === 'DP'
+            ? 'bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/50'
             : 'bg-purple-200/60 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 border border-purple-300/50 dark:border-purple-700/50';
           const normalizedKey = lv.lineName.replace(/\s+/g, '').toUpperCase();
           const capacity = (lineStats[normalizedKey] || {}).annualCapacity || 0;
@@ -1492,7 +1567,7 @@
           const lvDocsUrl = LINE_DOCS[lineKey(lv.lineName)];
           card.innerHTML = `
             <div class="flex flex-wrap items-center gap-3 mb-4">
-              <span class="px-3 py-1 text-sm rounded-md font-bold ${badgeClass}">${lv.type}</span>
+              <span class="px-3 py-1 text-sm rounded-md font-bold ${badgeClass}">${lv.type === 'SG' ? 'Spring Guide' : lv.type === 'DP' ? 'Drive Plate' : lv.type}</span>
               <span class="text-xl font-black text-slate-800 dark:text-white">${lv.lineName}</span>
               <span class="text-xs text-slate-400 font-medium flex items-center gap-1"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>${t('references')}</span>
               ${capacity > 0 ? `<span class="text-xs text-slate-500 font-medium">${t('annualCapacity')} ${fmt(capacity)}</span>` : ''}
@@ -1565,7 +1640,7 @@
         resultsArray.forEach(item => {
           const card = document.createElement('div');
           card.className = "p-5 bg-white/60 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl border border-valeo-cardBorder dark:border-slate-700 hover:border-valeo-blue hover:shadow-md transition-all cursor-pointer flex flex-col";
-          const colorClass = item.type === 'PPCA' ? 'text-valeo-green' : item.type === 'Disk' ? 'text-valeo-blue' : item.type === 'DMF' ? 'text-purple-600 dark:text-purple-400' : item.type === 'EDrive' ? 'text-teal-600 dark:text-teal-400' : 'text-slate-800 dark:text-white';
+          const colorClass = item.type === 'PPCA' ? 'text-valeo-green' : item.type === 'Disk' ? 'text-valeo-blue' : item.type === 'DMF' ? 'text-purple-600 dark:text-purple-400' : item.type === 'EDrive' ? 'text-teal-600 dark:text-teal-400' : item.type === 'PFW' ? 'text-orange-600 dark:text-orange-400' : item.type === 'SG' ? 'text-amber-600 dark:text-amber-400' : item.type === 'DP' ? 'text-rose-600 dark:text-rose-400' : 'text-slate-800 dark:text-white';
           const fgTag  = item.familyGroup     ? `<span class="mt-2 inline-block px-2 py-0.5 text-[10px] font-bold rounded-full bg-valeo-green/10 text-valeo-green border border-valeo-green/20">${escapeHtml(item.familyGroup)}</span>` : '';
           const dfgTag = item.diskFamilyGroup ? `<span class="mt-2 inline-block px-2 py-0.5 text-[10px] font-bold rounded-full bg-valeo-blue/10 text-valeo-blue border border-valeo-blue/20">${escapeHtml(item.diskFamilyGroup)}</span>` : '';
           const kitRow = globalData.find(g => g.kit === item.kit);
@@ -1757,19 +1832,25 @@
         diskDocsBtn.classList.add('hidden');
       }
       document.getElementById('kd-dmf').textContent = data.dmf || '-';
+      document.getElementById('pfw-comp-panel').classList.add('hidden');
       const pfwInfoEl = document.getElementById('kd-pfw-info');
       const pfwData = pfwMap[String(data.dmf || '').toUpperCase()];
       if (pfwData && pfwData.pfw) {
         const pfwRow = (label, ref, line) => ref
-          ? `<div class="flex items-center gap-2 text-xs">
+          ? `<div class="flex items-center gap-2 text-xs cursor-pointer rounded-md px-1 py-1.5 hover:bg-orange-100/60 dark:hover:bg-orange-900/20 transition-colors -mx-1"
+               data-pfw-ref="${escapeHtml(ref)}" data-pfw-line="${escapeHtml(line || '')}" data-pfw-type="${label}">
                <span class="font-bold text-slate-500 uppercase tracking-wider w-24 shrink-0">${label}</span>
                <span class="font-bold text-orange-700 dark:text-orange-300">${escapeHtml(ref)}</span>
-               ${line ? `<span class="text-slate-400 dark:text-slate-500">(${escapeHtml(line)})</span>` : ''}
+               ${line ? `<span class="text-slate-400 dark:text-slate-500 ml-1">(${escapeHtml(line)})</span>` : ''}
+               <svg class="w-3 h-3 text-slate-400 ml-auto shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
              </div>` : '';
         pfwInfoEl.innerHTML =
           pfwRow('PFW', pfwData.pfw, pfwData.pfwLine) +
           pfwRow('Spring Guide', pfwData.springGuide, pfwData.springGuideLine) +
           pfwRow('Drive Plate', pfwData.drivePlate, pfwData.drivePlateLine);
+        pfwInfoEl.querySelectorAll('[data-pfw-ref]').forEach(el => {
+          el.addEventListener('click', () => renderPFWCompSection(el.dataset.pfwRef, el.dataset.pfwLine, el.dataset.pfwType));
+        });
         pfwInfoEl.classList.remove('hidden');
       } else {
         pfwInfoEl.classList.add('hidden');
@@ -2028,6 +2109,132 @@
           scales: {
             x: { grid: { display: false }, border: { display: false }, ticks: { color: textColor, font: { weight: 'bold', size: 14 } } },
             y: { beginAtZero: true, suggestedMax: 100, grid: { color: gridColor }, border: { display: false }, ticks: { color: textColor, font: { size: 12 }, callback: (value) => value + '%' } }
+          }
+        }
+      });
+    }
+
+    function renderPFWCompSection(ref, line, componentType) {
+      const panel = document.getElementById('pfw-comp-panel');
+      panel.classList.remove('hidden');
+      setTimeout(() => panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
+
+      document.getElementById('pc-title').textContent = componentType;
+      document.getElementById('kd-pfw-comp-ref').textContent = ref || '-';
+
+      const lineBadge = document.getElementById('pc-line-badge');
+      if (line) {
+        lineBadge.textContent = line;
+        lineBadge.classList.remove('hidden');
+        lineBadge.onclick = () => {
+          els.compSearch.value = line;
+          els.kitSelect.value = '';
+          renderCompSearchResults(line.toLowerCase());
+          closeSidebarOnMobile();
+        };
+      } else {
+        lineBadge.classList.add('hidden');
+      }
+
+      const key = lineKey(line || '');
+      const stats = lineStats[key] || { cycleTime: '-', trp: '-', shiftDay: '-', annualCapacity: 0 };
+      const cap   = stats.annualCapacity;
+
+      let trpFormatted = stats.trp;
+      if (stats.trp !== '-') {
+        let trpNum = Number(stats.trp);
+        if (!isNaN(trpNum)) {
+          if (trpNum <= 1 && trpNum > 0) trpNum = trpNum * 100;
+          trpFormatted = parseFloat(trpNum.toFixed(1)) + '%';
+        } else if (!String(stats.trp).includes('%')) {
+          trpFormatted += '%';
+        }
+      }
+      document.getElementById('pc-ct').textContent  = stats.cycleTime;
+      document.getElementById('pc-trp').textContent = trpFormatted;
+      document.getElementById('pc-sd').textContent  = stats.shiftDay;
+      document.getElementById('pc-cap').textContent = cap > 0 ? fmt(cap) : '-';
+      document.getElementById('pc-chart-title').textContent = cap > 0
+        ? t('annualChart') || 'Yıllık Hat Doluluk Grafiği (%)'
+        : 'Yıllık Üretim Adeti';
+
+      const lineField = componentType === 'PFW' ? 'pfwLine'
+        : componentType === 'Spring Guide' ? 'springGuideLine'
+        : 'drivePlateLine';
+
+      let v26=0, v27=0, v28=0, v29=0, v30=0;
+      globalData.forEach(row => {
+        if (!row.dmf) return;
+        const pd = pfwMap[row.dmf.toUpperCase()];
+        if (!pd) return;
+        if (lineKey(pd[lineField] || '') === key) {
+          v26+=row.vol26; v27+=row.vol27; v28+=row.vol28; v29+=row.vol29; v30+=row.vol30;
+        }
+      });
+
+      const occs = [v26, v27, v28, v29, v30].map(v => cap > 0 ? (v / cap) * 100 : 0);
+      const qtys = [v26, v27, v28, v29, v30];
+
+      document.getElementById('pc-qty-grid').innerHTML = ['2027','2028','2029','2030','2031'].map((yr, i) => {
+        const pct = cap > 0 ? occs[i] : -1;
+        const [bg, border, text] = pct >= 115
+          ? ['bg-red-50 dark:bg-red-900/30', 'border-red-300 dark:border-red-700', 'text-red-600 dark:text-red-400']
+          : pct >= 105
+          ? ['bg-orange-50 dark:bg-orange-900/30', 'border-orange-300 dark:border-orange-700', 'text-orange-600 dark:text-orange-400']
+          : pct >= 98
+          ? ['bg-yellow-50 dark:bg-yellow-900/30', 'border-yellow-300 dark:border-yellow-700', 'text-yellow-600 dark:text-yellow-400']
+          : ['bg-white/60 dark:bg-slate-900/50', 'border-slate-200 dark:border-slate-700', 'text-slate-800 dark:text-slate-200'];
+        const barColor = pct >= 115 ? 'bg-red-500' : pct >= 105 ? 'bg-orange-500' : pct >= 98 ? 'bg-yellow-500' : 'bg-green-500';
+        const pctHtml  = cap > 0
+          ? `<span class="block text-[10px] sm:text-xs font-bold mt-0.5 ${text}">%${pct.toFixed(0)}</span>
+             <div class="mt-1 h-1 rounded-full bg-slate-200/70 dark:bg-slate-600/50"><div class="${barColor} h-1 rounded-full" style="width:${Math.min(pct,100).toFixed(0)}%"></div></div>`
+          : '';
+        return `<div class="${bg} rounded-lg p-1.5 sm:p-3 border ${border} shadow-sm">
+          <span class="block text-[10px] sm:text-xs text-slate-500 font-bold mb-0.5">${yr}</span>
+          <span class="font-black text-xs sm:text-base ${text}">${fmt(qtys[i])}</span>
+          ${pctHtml}
+        </div>`;
+      }).join('');
+
+      const ctx = document.getElementById('pfwCompChart').getContext('2d');
+      if (pfwCompChartInstance) pfwCompChartInstance.destroy();
+
+      const isDark    = document.documentElement.classList.contains('dark');
+      const textColor = isDark ? '#cbd5e1' : '#475569';
+      const gridColor = isDark ? '#334155' : '#e2e8f0';
+      const baseColor = '#f97316';
+      const chartData = cap > 0 ? occs : qtys;
+      const bgColors  = cap > 0
+        ? occs.map(p => p >= 115 ? '#ef4444' : p >= 105 ? '#f97316' : p >= 98 ? '#eab308' : baseColor)
+        : qtys.map(() => baseColor);
+
+      pfwCompChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: ['2027','2028','2029','2030','2031'],
+          datasets: [
+            { data: chartData, backgroundColor: bgColors, borderRadius: 6, borderSkipped: false, barPercentage: 0.7, datalabels: { display: true } },
+            { type: 'line', data: chartData, borderColor: baseColor + 'bb', borderWidth: 2, pointBackgroundColor: baseColor, pointBorderColor: 'transparent', pointRadius: 4, tension: 0.4, fill: false, datalabels: { display: false } }
+          ]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false, layout: { padding: { top: 30 } },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: isDark ? '#1e293b' : '#ffffff', titleColor: isDark ? '#ffffff' : '#0f172a',
+              bodyColor: isDark ? '#cbd5e1' : '#475569', borderColor: isDark ? '#334155' : '#cbd5e1',
+              borderWidth: 1, padding: 12, displayColors: false,
+              titleFont: { size: 14 }, bodyFont: { size: 15, weight: 'bold' },
+              callbacks: { label: (context) => cap > 0 ? t('tooltipLabel')(context.raw) : fmt(context.raw) }
+            },
+            datalabels: { anchor: 'end', align: 'top', color: textColor, font: { weight: 'bold', size: 14 },
+              formatter: (value) => cap > 0 ? t('datalabelFmt')(value) : fmt(value) }
+          },
+          scales: {
+            x: { grid: { display: false }, border: { display: false }, ticks: { color: textColor, font: { weight: 'bold', size: 14 } } },
+            y: { beginAtZero: true, suggestedMax: cap > 0 ? 100 : undefined, grid: { color: gridColor }, border: { display: false },
+              ticks: { color: textColor, font: { size: 12 }, callback: (v) => cap > 0 ? v + '%' : fmt(v) } }
           }
         }
       });
