@@ -1301,12 +1301,14 @@
       const isAllEDrive = termLower === 'e-drive';
 
       globalData.forEach(d => {
-        const pLineRaw = String(d.ppcaLine || '').trim();
-        const dLineRaw = String(d.diskLine || '').trim();
-        const mLineRaw = String(d.dmfLine  || '').trim();
+        const pLineRaw = String(d.ppcaLine  || '').trim();
+        const dLineRaw = String(d.diskLine  || '').trim();
+        const mLineRaw = String(d.dmfLine   || '').trim();
+        const eLineRaw = String(d.eDriveLine|| '').trim();
         const pLine = pLineRaw.toLowerCase();
         const dLine = dLineRaw.toLowerCase();
         const mLine = mLineRaw.toLowerCase();
+        const eLine = eLineRaw.toLowerCase();
 
         if (!isAllPPCA && !isAllDisk && !isAllDMF && !isAllEDrive) {
           if (pLine.includes(termLower) && d.ppca) {
@@ -1320,6 +1322,10 @@
           if (mLine.includes(termLower) && d.dmf) {
             if (!uniqueResults.has('DMF-' + d.dmf))
               uniqueResults.set('DMF-' + d.dmf, { type: 'DMF', label: `DMF (${d.dmfLine})`, value: d.dmf, kit: d.kit });
+          }
+          if (eLine.includes(termLower) && eLineRaw && d.kit) {
+            if (!uniqueResults.has('EDrive-' + d.kit))
+              uniqueResults.set('EDrive-' + d.kit, { type: 'EDrive', label: `E-Drive (${d.eDriveLine})`, value: d.kit, kit: d.kit });
           }
         }
 
@@ -1337,6 +1343,12 @@
           }
         } else if (isAllDMF) {
           // populated from dmfLineData after forEach
+        } else if (isAllEDrive) {
+          if (eLineRaw) {
+            const key = 'EDrive:' + eLineRaw.replace(/\s+/g, '').toUpperCase();
+            if (!lineVolumes.has(key)) lineVolumes.set(key, { type: 'EDrive', lineName: eLineRaw, v26:0, v27:0, v28:0, v29:0, v30:0 });
+            const lv = lineVolumes.get(key); lv.v26+=d.vol26; lv.v27+=d.vol27; lv.v28+=d.vol28; lv.v29+=d.vol29; lv.v30+=d.vol30;
+          }
         } else {
           if (pLine.includes(termLower) && pLineRaw) {
             const key = 'PPCA:' + pLineRaw.replace(/\s+/g, '').toUpperCase();
@@ -1445,8 +1457,6 @@
       document.getElementById('cd-compname').nextElementSibling.textContent =
         ((isAllPPCA && !ppcaGroupFilter) || (isAllDisk && !diskGroupFilter))
           ? t('ppcaGroupCount')
-          : isAllEDrive
-          ? t('matchCount')(eDriveData.length)
           : t('matchCount')(resultsArray.length + displayVolumes.length);
 
       const lineSummaryEl = document.getElementById('cd-line-summary');
@@ -1454,8 +1464,6 @@
         renderPPCAGroupOverview(lineSummaryEl, lineVolumesArray);
       } else if (isAllDisk && !diskGroupFilter) {
         renderDiskGroupOverview(lineSummaryEl, lineVolumesArray);
-      } else if (isAllEDrive) {
-        renderEDriveLineGroups(lineSummaryEl);
       } else if (displayVolumes.length > 0) {
         lineSummaryEl.innerHTML = `<h4 class="text-sm font-bold text-slate-500 uppercase tracking-wider">${t('lineProdSummary')}</h4>`;
         displayVolumes.forEach(lv => {
@@ -1463,6 +1471,8 @@
             ? 'bg-[#dcfce7] dark:bg-green-900/40 text-slate-700 dark:text-green-300 border border-[#bbf7d0] dark:border-green-800/50'
             : lv.type === 'Disk'
             ? 'bg-[#bae6fd] dark:bg-blue-900/40 text-slate-700 dark:text-blue-300 border border-[#7dd3fc] dark:border-blue-800/50'
+            : lv.type === 'EDrive'
+            ? 'bg-teal-100 dark:bg-teal-900/40 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800/50'
             : 'bg-purple-200/60 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 border border-purple-300/50 dark:border-purple-700/50';
           const normalizedKey = lv.lineName.replace(/\s+/g, '').toUpperCase();
           const capacity = (lineStats[normalizedKey] || {}).annualCapacity || 0;
@@ -1544,7 +1554,7 @@
       const resultsContainer = document.getElementById('cd-results');
       resultsContainer.innerHTML = '';
 
-      if (resultsArray.length === 0 && displayVolumes.length === 0 && !(isAllPPCA && !ppcaGroupFilter) && !(isAllDisk && !diskGroupFilter) && !isAllEDrive) {
+      if (resultsArray.length === 0 && displayVolumes.length === 0 && !(isAllPPCA && !ppcaGroupFilter) && !(isAllDisk && !diskGroupFilter)) {
         resultsContainer.innerHTML = `<p class="col-span-full text-slate-500 font-medium text-base">${t('noResults')}</p>`;
       } else if (resultsArray.length === 0) {
         resultsContainer.innerHTML = '';
@@ -1552,7 +1562,7 @@
         resultsArray.forEach(item => {
           const card = document.createElement('div');
           card.className = "p-5 bg-white/60 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl border border-valeo-cardBorder dark:border-slate-700 hover:border-valeo-blue hover:shadow-md transition-all cursor-pointer flex flex-col";
-          const colorClass = item.type === 'PPCA' ? 'text-valeo-green' : item.type === 'Disk' ? 'text-valeo-blue' : item.type === 'DMF' ? 'text-purple-600 dark:text-purple-400' : 'text-slate-800 dark:text-white';
+          const colorClass = item.type === 'PPCA' ? 'text-valeo-green' : item.type === 'Disk' ? 'text-valeo-blue' : item.type === 'DMF' ? 'text-purple-600 dark:text-purple-400' : item.type === 'EDrive' ? 'text-teal-600 dark:text-teal-400' : 'text-slate-800 dark:text-white';
           const fgTag  = item.familyGroup     ? `<span class="mt-2 inline-block px-2 py-0.5 text-[10px] font-bold rounded-full bg-valeo-green/10 text-valeo-green border border-valeo-green/20">${escapeHtml(item.familyGroup)}</span>` : '';
           const dfgTag = item.diskFamilyGroup ? `<span class="mt-2 inline-block px-2 py-0.5 text-[10px] font-bold rounded-full bg-valeo-blue/10 text-valeo-blue border border-valeo-blue/20">${escapeHtml(item.diskFamilyGroup)}</span>` : '';
           const kitRow = globalData.find(g => g.kit === item.kit);
@@ -1897,34 +1907,6 @@
 
       if (prefix === 'p') ppcaChartInstance = newChart;
       if (prefix === 'd') diskChartInstance  = newChart;
-    }
-
-    function renderEDriveLineGroups(container) {
-      container.innerHTML = `<h4 class="text-sm font-bold text-slate-500 uppercase tracking-wider">${t('lineProdSummary')}</h4>`;
-      const lineMap = new Map();
-      eDriveData.forEach(({line, ref}) => {
-        if (!lineMap.has(line)) lineMap.set(line, []);
-        lineMap.get(line).push(ref);
-      });
-      if (lineMap.size === 0) { container.classList.add('hidden'); return; }
-      lineMap.forEach((refs, lineName) => {
-        const card = document.createElement('div');
-        card.className = 'bg-valeo-cardInner/70 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl p-5 border border-valeo-cardBorder dark:border-slate-700 shadow-sm';
-        card.innerHTML = `
-          <div class="flex flex-wrap items-center gap-3 mb-4">
-            <span class="px-3 py-1 text-sm rounded-md font-bold bg-teal-100 dark:bg-teal-900/40 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800/50">E-Drive</span>
-            <span class="text-xl font-black text-slate-800 dark:text-white">${escapeHtml(lineName)}</span>
-            <span class="text-xs text-slate-400 font-medium flex items-center gap-1">
-              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-              ${refs.length} ${t('references')}
-            </span>
-          </div>
-          <div class="flex flex-wrap gap-2">
-            ${refs.map(r => `<span class="px-2.5 py-1 text-xs font-bold rounded-md bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-300 border border-teal-200/60 dark:border-teal-700/50">${escapeHtml(r)}</span>`).join('')}
-          </div>`;
-        container.appendChild(card);
-      });
-      container.classList.remove('hidden');
     }
 
     function renderDMFSection(dmfLine) {

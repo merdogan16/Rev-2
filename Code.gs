@@ -182,7 +182,7 @@ function getLayoutImage(fileId) {
 }
 
 function getSpreadsheetData() {
-  const CACHE_KEY = 'spreadsheet_data_v5';
+  const CACHE_KEY = 'spreadsheet_data_v6';
   const cache = CacheService.getScriptCache();
   const cached = cache.get(CACHE_KEY);
   if (cached) {
@@ -240,10 +240,27 @@ function getSpreadsheetData() {
       }
     }
     
-    // 3. ANA MTP VERİLERİ
+    // 3. E-DRIVE SHEET → hat/ref haritası (formattedData'dan önce oluşturulmalı)
+    const eDriveSheet = mainSs.getSheetByName('E-Drive');
+    const eDriveData = [];
+    const refToEDriveLine = {};
+    if (eDriveSheet) {
+      const eDriveLastRow = Math.max(eDriveSheet.getLastRow(), 1);
+      const eDriveRaw = eDriveSheet.getRange(1, 1, eDriveLastRow, 2).getValues();
+      eDriveRaw.forEach(row => {
+        const line = String(row[0] || '').trim();
+        const ref  = String(row[1] || '').trim();
+        if (line && ref) {
+          eDriveData.push({ line, ref });
+          refToEDriveLine[ref.toUpperCase()] = line;
+        }
+      });
+    }
+
+    // 4. ANA MTP VERİLERİ
     const mtpLastRow = Math.max(mtpSheet.getLastRow(), 2);
     const mtpRaw = mtpSheet.getRange(2, 1, mtpLastRow - 1, 100).getValues();
-    
+
     const formattedData = mtpRaw.map(row => {
       const rawDiaphragm = String(row[17] || '').trim();
       let diagFurnaceInfo = '-';
@@ -255,9 +272,13 @@ function getSpreadsheetData() {
           diagFurnaceInfo = diagMap[baseId] ? diagMap[baseId] : '-';
         } else diagFurnaceInfo = diagMap[upperDiag] ? diagMap[upperDiag] : '-';
       }
-      
+
+      const kitRef = String(row[13] || '').trim();
+      const productFamily = String(row[8] || '').trim().toUpperCase();
+      const eDriveLine = productFamily === 'A05' ? (refToEDriveLine[kitRef.toUpperCase()] || '') : '';
+
       return {
-        kit: String(row[13] || '').trim(),
+        kit: kitRef,
         customerType: String(row[5]  || '').trim(),
         ppca: String(row[14] || '').trim(),
         ppcaLine: String(row[15] || '').trim(),
@@ -269,6 +290,7 @@ function getSpreadsheetData() {
         diskFamilyGroup: String(row[27] || '').trim(),
         dmf: String(row[21] || '').trim(),
         dmfLine: String(row[22] || '').trim(),
+        eDriveLine: eDriveLine,
         familyGroup: String(row[26] || '').trim(),
         customer: String(row[1]  || '').trim(),
         customerDetail: String(row[2]  || '').trim(),
@@ -280,19 +302,6 @@ function getSpreadsheetData() {
         vol30: Number(row[94]) || 0
       };
     }).filter(item => item.kit !== '');
-
-    // 4. E-DRIVE SHEET VERİLERİ
-    const eDriveSheet = mainSs.getSheetByName('E-Drive');
-    const eDriveData = [];
-    if (eDriveSheet) {
-      const eDriveLastRow = Math.max(eDriveSheet.getLastRow(), 1);
-      const eDriveRaw = eDriveSheet.getRange(1, 1, eDriveLastRow, 2).getValues();
-      eDriveRaw.forEach(row => {
-        const line = String(row[0] || '').trim();
-        const ref  = String(row[1] || '').trim();
-        if (line && ref) eDriveData.push({ line, ref });
-      });
-    }
 
     const result = {
       globalData: formattedData,
