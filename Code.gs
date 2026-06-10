@@ -182,7 +182,7 @@ function getLayoutImage(fileId) {
 }
 
 function getSpreadsheetData() {
-  const CACHE_KEY = 'spreadsheet_data_v8';
+  const CACHE_KEY = 'spreadsheet_data_v9';
   const cache = CacheService.getScriptCache();
   const cached = cache.get(CACHE_KEY);
   if (cached) {
@@ -222,16 +222,18 @@ function getSpreadsheetData() {
       }
     });
 
-    // DMF hat kapasitelerini D70:N73'ten doğrudan oku (generic scan'i override eder)
+    // DMF hat istatistiklerini D70:N73'ten doğrudan oku (generic scan'i override eder)
     try {
       const dmfCapRaw = summarySheet.getRange(70, 4, 4, 11).getValues(); // D70:N73
       dmfCapRaw.forEach(r => {
-        const name = String(r[0] || '').trim();  // D sütunu
-        const cap  = Number(r[10]) || 0;          // N sütunu (D'den 10 sütun ileride)
+        const name = String(r[0] || '').trim();  // D sütunu (hat adı)
         if (name) {
           const key = name.replace(/[^A-Z0-9]/gi, '').toUpperCase();
           if (!lineStatsMap[key]) lineStatsMap[key] = { cycleTime: '-', trp: '-', shiftDay: '-', annualCapacity: 0 };
-          lineStatsMap[key].annualCapacity = cap;
+          lineStatsMap[key].cycleTime      = r[3]  || '-';  // G sütunu
+          lineStatsMap[key].trp            = r[4]  || '-';  // H sütunu
+          lineStatsMap[key].shiftDay       = r[5]  || '-';  // I sütunu
+          lineStatsMap[key].annualCapacity = Number(r[10]) || 0;  // N sütunu
         }
       });
     } catch(e) {}
