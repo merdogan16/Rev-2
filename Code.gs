@@ -182,7 +182,7 @@ function getLayoutImage(fileId) {
 }
 
 function getSpreadsheetData() {
-  const CACHE_KEY = 'spreadsheet_data_v6';
+  const CACHE_KEY = 'spreadsheet_data_v7';
   const cache = CacheService.getScriptCache();
   const cached = cache.get(CACHE_KEY);
   if (cached) {
@@ -258,8 +258,8 @@ function getSpreadsheetData() {
     }
 
     // 4. ANA MTP VERİLERİ
-    const mtpLastRow = Math.max(mtpSheet.getLastRow(), 2);
-    const mtpRaw = mtpSheet.getRange(2, 1, mtpLastRow - 1, 100).getValues();
+    const mtpLastRow = Math.max(mtpSheet.getLastRow(), 8);
+    const mtpRaw = mtpSheet.getRange(8, 1, mtpLastRow - 7, 100).getValues();
 
     const formattedData = mtpRaw.map(row => {
       const rawDiaphragm = String(row[17] || '').trim();
