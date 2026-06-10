@@ -182,7 +182,7 @@ function getLayoutImage(fileId) {
 }
 
 function getSpreadsheetData() {
-  const CACHE_KEY = 'spreadsheet_data_v1';
+  const CACHE_KEY = 'spreadsheet_data_v2';
   const cache = CacheService.getScriptCache();
   const cached = cache.get(CACHE_KEY);
   if (cached) {
@@ -258,6 +258,7 @@ function getSpreadsheetData() {
       
       return {
         kit: String(row[13] || '').trim(),
+        customerType: String(row[5]  || '').trim(),
         ppca: String(row[14] || '').trim(),
         ppcaLine: String(row[15] || '').trim(),
         cover: String(row[16] || '').trim(),

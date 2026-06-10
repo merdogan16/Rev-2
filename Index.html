@@ -388,6 +388,8 @@
             <h3 data-i18n="selectedKit" class="text-sm font-bold text-valeo-blue uppercase tracking-wider mb-2">Seçili Kit Referansı</h3>
             <p id="kd-kitname" class="text-4xl md:text-5xl font-black tracking-tight text-slate-800 dark:text-white">-</p>
             <div id="kd-customer-row" class="hidden mt-3 flex flex-wrap items-center gap-2">
+              <span id="kd-cust-type" class="cursor-pointer px-2.5 py-1 text-[11px] font-black rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-700 hover:bg-indigo-200 dark:hover:bg-indigo-800/50 transition-colors tracking-wide uppercase" title="Bu müşteri tipiyle ara"></span>
+              <span class="text-slate-300 dark:text-slate-600 font-light select-none">|</span>
               <span id="kd-cust-code" class="cursor-pointer px-3 py-1.5 text-xs font-bold rounded-full bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 border border-orange-200 dark:border-orange-800 hover:bg-orange-200 dark:hover:bg-orange-800/50 transition-colors" title="Bu müşterinin tüm referanslarını ara" data-i18n-title="searchAllCustomerRefs"></span>
               <svg class="w-3 h-3 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
               <span id="kd-cust-detail" class="text-xs font-semibold text-slate-600 dark:text-slate-300 cursor-pointer hover:text-valeo-blue dark:hover:text-valeo-green transition-colors" title="Bu müşteri detayının referanslarını ara" data-i18n-title="searchCustomerDetailRefs"></span>
@@ -1358,11 +1360,12 @@
               uniqueResults.set(fgKey, { type: 'PPCA', label: t('ppcaFamilyGroupLabel')(d.familyGroup), value: d.ppca, kit: d.kit, familyGroup: d.familyGroup });
           }
 
-          // Müşteri araması (B→C→D hiyerarşisi)
-          const cust    = String(d.customer       || '').toLowerCase();
-          const custDet = String(d.customerDetail || '').toLowerCase();
-          const custNm  = String(d.customerName   || '').toLowerCase();
-          if ((cust && cust.includes(termLower)) || (custDet && custDet.includes(termLower)) || (custNm && custNm.includes(termLower))) {
+          // Müşteri araması (tip + B→C→D hiyerarşisi)
+          const custType = String(d.customerType  || '').toLowerCase();
+          const cust     = String(d.customer       || '').toLowerCase();
+          const custDet  = String(d.customerDetail || '').toLowerCase();
+          const custNm   = String(d.customerName   || '').toLowerCase();
+          if ((custType && custType.includes(termLower)) || (cust && cust.includes(termLower)) || (custDet && custDet.includes(termLower)) || (custNm && custNm.includes(termLower))) {
             const ck = String(d.customer || '').replace(/\s+/g, '').toUpperCase();
             if (ck) {
               if (!customerVolumes.has(ck))
@@ -1525,7 +1528,11 @@
           card.className = "p-5 bg-white/60 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl border border-valeo-cardBorder dark:border-slate-700 hover:border-valeo-blue hover:shadow-md transition-all cursor-pointer flex flex-col";
           const colorClass = item.type === 'PPCA' ? 'text-valeo-green' : (item.type === 'Disk' ? 'text-valeo-blue' : 'text-slate-800 dark:text-white');
           const fgTag = item.familyGroup ? `<span class="mt-2 inline-block px-2 py-0.5 text-[10px] font-bold rounded-full bg-valeo-green/10 text-valeo-green border border-valeo-green/20">${item.familyGroup}</span>` : '';
-          card.innerHTML = `<span class="text-xs font-bold text-slate-500 uppercase tracking-wider">${item.label}</span><span class="text-2xl font-black mt-1 ${colorClass}">${item.value}</span>${fgTag}`;
+          const kitRow = globalData.find(g => g.kit === item.kit);
+          const ctTag = (item.type === 'Kit' && kitRow && kitRow.customerType)
+            ? `<span class="mt-2 inline-block px-2 py-0.5 text-[10px] font-black rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-700 tracking-wide uppercase">${escapeHtml(kitRow.customerType)}</span>`
+            : '';
+          card.innerHTML = `<span class="text-xs font-bold text-slate-500 uppercase tracking-wider">${item.label}</span><span class="text-2xl font-black mt-1 ${colorClass}">${item.value}</span>${fgTag}${ctTag}`;
           card.onclick = () => { els.kitSelect.value = item.kit; els.compSearch.value = ''; renderDetails(item.kit); };
           resultsContainer.appendChild(card);
         });
@@ -1547,9 +1554,18 @@
       document.getElementById('kd-kitname').textContent = data.kit;
       const custRow = document.getElementById('kd-customer-row');
       if (data.customer) {
+        const ctEl = document.getElementById('kd-cust-type');
         const ccEl = document.getElementById('kd-cust-code');
         const cdEl = document.getElementById('kd-cust-detail');
         const cnEl = document.getElementById('kd-cust-name');
+        if (data.customerType) {
+          ctEl.textContent = data.customerType;
+          ctEl.classList.remove('hidden');
+          ctEl.onclick = () => { els.compSearch.value = data.customerType; els.kitSelect.value = ''; renderCompSearchResults(data.customerType.toLowerCase()); closeSidebarOnMobile(); };
+        } else {
+          ctEl.classList.add('hidden');
+          ctEl.onclick = null;
+        }
         ccEl.textContent = data.customer;
         ccEl.onclick = () => { els.compSearch.value = data.customer; els.kitSelect.value = ''; renderCompSearchResults(data.customer.toLowerCase()); closeSidebarOnMobile(); };
         cdEl.textContent = data.customerDetail || '';
