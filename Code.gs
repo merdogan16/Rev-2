@@ -182,7 +182,7 @@ function getLayoutImage(fileId) {
 }
 
 function getSpreadsheetData() {
-  const CACHE_KEY = 'spreadsheet_data_v13';
+  const CACHE_KEY = 'spreadsheet_data_v14';
   const cache = CacheService.getScriptCache();
   const cached = cache.get(CACHE_KEY);
   if (cached) {
@@ -211,7 +211,7 @@ function getSpreadsheetData() {
     
     summaryRaw.forEach(row => {
       const rawName = String(row[4] || row[3] || '');
-      const lineName = rawName.replace(/\s+/g, '').toUpperCase();
+      const lineName = rawName.replace(/[^A-Z0-9]/gi, '').toUpperCase();
       if (lineName) {
         lineStatsMap[lineName] = {
           cycleTime: row[6] || '-',

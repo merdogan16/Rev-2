@@ -1558,7 +1558,7 @@
             : lv.type === 'DP'
             ? 'bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/50'
             : 'bg-purple-200/60 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 border border-purple-300/50 dark:border-purple-700/50';
-          const normalizedKey = lv.lineName.replace(/\s+/g, '').toUpperCase();
+          const normalizedKey = lineKey(lv.lineName);
           const capacity = (lineStats[normalizedKey] || {}).annualCapacity || 0;
           const card = document.createElement('div');
           card.className = 'bg-valeo-cardInner/70 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl p-5 border border-valeo-cardBorder dark:border-slate-700 shadow-sm cursor-pointer hover:border-valeo-blue/60 hover:shadow-md transition-all';
@@ -1906,7 +1906,7 @@
     }
 
     function updateLineOccupancyAndChart(lineName, prefix, canvasId) {
-      const safeSearchName = String(lineName || '').replace(/\s+/g, '').toUpperCase();
+      const safeSearchName = lineKey(lineName);
       const stats = lineStats[safeSearchName] || { cycleTime: '-', trp: '-', shiftDay: '-', annualCapacity: 0 };
 
       let trpFormatted = stats.trp;
@@ -1930,8 +1930,8 @@
       let v26 = 0, v27 = 0, v28 = 0, v29 = 0, v30 = 0;
 
       globalData.forEach(row => {
-        const pLineSafe = String(row.ppcaLine || '').replace(/\s+/g, '').toUpperCase();
-        const dLineSafe = String(row.diskLine || '').replace(/\s+/g, '').toUpperCase();
+        const pLineSafe = lineKey(row.ppcaLine);
+        const dLineSafe = lineKey(row.diskLine);
         if (prefix === 'p' && pLineSafe === safeSearchName) {
           v26 += row.vol26; v27 += row.vol27; v28 += row.vol28; v29 += row.vol29; v30 += row.vol30;
         }
