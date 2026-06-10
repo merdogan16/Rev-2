@@ -265,8 +265,8 @@ function getSpreadsheetData() {
         diaphragmFurnace: diagFurnaceInfo,
         disk: String(row[18] || '').trim(),
         diskLine: String(row[19] || '').trim(),
-        dmf: String(row[20] || '').trim(),
-        dmfLine: String(row[21] || '').trim(),
+        dmf: String(row[21] || '').trim(),
+        dmfLine: String(row[22] || '').trim(),
         familyGroup: String(row[26] || '').trim(),
         customer: String(row[1]  || '').trim(),
         customerDetail: String(row[2]  || '').trim(),
@@ -279,50 +279,9 @@ function getSpreadsheetData() {
       };
     }).filter(item => item.kit !== '');
 
-    // 4. DMF LINE DATA
-    const dmfNamesRaw = summarySheet.getRange(70, 4, 4, 1).getValues();
-    const dmfCapRaw   = summarySheet.getRange(70, 14, 4, 1).getValues();
-
-    // BG-BK (indices 58-62) = 2026-2030 DMF üretim adetleri, dmfLine (index 21) bazında topla
-    const dmfLineQtyMap = {};
-    mtpRaw.forEach(row => {
-      const dmfLine = String(row[21] || '').trim();
-      if (!dmfLine) return;
-      dmfLine.split('/').map(p => p.trim()).filter(p => p).forEach(part => {
-        const key = part.replace(/\s+/g, '').toUpperCase();
-        if (!dmfLineQtyMap[key]) dmfLineQtyMap[key] = {qty26:0,qty27:0,qty28:0,qty29:0,qty30:0};
-        dmfLineQtyMap[key].qty26 += Number(row[58]) || 0;
-        dmfLineQtyMap[key].qty27 += Number(row[59]) || 0;
-        dmfLineQtyMap[key].qty28 += Number(row[60]) || 0;
-        dmfLineQtyMap[key].qty29 += Number(row[61]) || 0;
-        dmfLineQtyMap[key].qty30 += Number(row[62]) || 0;
-      });
-    });
-
-    const dmfLineData = {};
-    for (let i = 0; i < 4; i++) {
-      const rawName = String(dmfNamesRaw[i][0] || '').trim();
-      if (!rawName) continue;
-      const key = rawName.replace(/\s+/g, '').toUpperCase();
-      const cap = Number(dmfCapRaw[i][0]) || 0;
-      const qtys = dmfLineQtyMap[key] || {qty26:0,qty27:0,qty28:0,qty29:0,qty30:0};
-      const toOcc = qty => cap > 0 ? (qty / cap * 100) : 0;
-      dmfLineData[key] = {
-        name: rawName,
-        annualCapacity: cap,
-        occ26: toOcc(qtys.qty26), occ27: toOcc(qtys.qty27),
-        occ28: toOcc(qtys.qty28), occ29: toOcc(qtys.qty29),
-        occ30: toOcc(qtys.qty30),
-        qty26: qtys.qty26, qty27: qtys.qty27,
-        qty28: qtys.qty28, qty29: qtys.qty29,
-        qty30: qtys.qty30
-      };
-    }
-
     const result = {
       globalData: formattedData,
-      lineStats: lineStatsMap,
-      dmfLineData: dmfLineData
+      lineStats: lineStatsMap
     };
 
     try {

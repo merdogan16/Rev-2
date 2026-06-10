@@ -517,10 +517,18 @@
                 </div>
                 <div id="kd-dmf" class="text-4xl lg:text-5xl font-bold mb-4">-</div>
               </div>
+
+              <div class="grid grid-cols-3 gap-3">
+                <div class="stat-pill p-4 rounded-xl"><span class="block text-xs font-bold uppercase text-slate-500 mb-1">Cycle Time</span><span id="m-ct" class="font-black text-xl text-slate-700 dark:text-slate-200">-</span></div>
+                <div class="stat-pill p-4 rounded-xl"><span class="block text-xs font-bold uppercase text-slate-500 mb-1">TRP</span><span id="m-trp" class="font-black text-xl text-slate-700 dark:text-slate-200">-</span></div>
+                <div class="stat-pill p-4 rounded-xl"><span class="block text-xs font-bold uppercase text-slate-500 mb-1">Shift / Day</span><span id="m-sd" class="font-black text-xl text-slate-700 dark:text-slate-200">-</span></div>
+              </div>
+
               <div id="dmf-qty-grid" class="grid grid-cols-5 gap-1 sm:gap-2 text-center"></div>
               <div class="glass-panel rounded-xl p-5 flex flex-col">
                 <div class="flex justify-between items-end mb-4">
                   <span data-i18n="annualChart" class="text-sm font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Yıllık Hat Doluluk Grafiği (%)</span>
+                  <span class="text-xs font-bold text-slate-500"><span data-i18n="annualCapacity">Yıllık Kapasite:</span> <span id="m-cap" class="text-slate-800 dark:text-white">-</span></span>
                 </div>
                 <div class="relative w-full h-56 mt-2">
                   <canvas id="dmfChart"></canvas>
@@ -555,7 +563,6 @@
 
     let globalData = [];
     let lineStats = {};
-    let dmfLineData = {};
     let ppcaChartInstance = null;
 
     // Hat → Drive klasör linki haritası (anahtar: normalize edilmiş hat adı)
@@ -981,7 +988,6 @@
           }
           globalData = data.globalData;
           lineStats = data.lineStats;
-          dmfLineData = data.dmfLineData || {};
 
           const kits = [...new Set(globalData.map(d => d.kit))].sort();
           allKits = kits;
@@ -1377,9 +1383,13 @@
       });
 
       if (isAllDMF) {
-        Object.values(dmfLineData).forEach(ld => {
-          const key = 'DMF:' + ld.name.replace(/\s+/g, '').toUpperCase();
-          lineVolumes.set(key, { type:'DMF', lineName:ld.name, v26:ld.qty26, v27:ld.qty27, v28:ld.qty28, v29:ld.qty29, v30:ld.qty30, occ26:ld.occ26, occ27:ld.occ27, occ28:ld.occ28, occ29:ld.occ29, occ30:ld.occ30 });
+        globalData.forEach(d => {
+          const dmfLineRaw = String(d.dmfLine || '').trim();
+          if (!dmfLineRaw) return;
+          const key = 'DMF:' + lineKey(dmfLineRaw);
+          if (!lineVolumes.has(key)) lineVolumes.set(key, { type: 'DMF', lineName: dmfLineRaw, v26:0, v27:0, v28:0, v29:0, v30:0 });
+          const lv = lineVolumes.get(key);
+          lv.v26+=d.vol26; lv.v27+=d.vol27; lv.v28+=d.vol28; lv.v29+=d.vol29; lv.v30+=d.vol30;
         });
       }
 
@@ -1838,13 +1848,37 @@
     }
 
     function renderDMFSection(dmfLine) {
-      const key = String(dmfLine || '').replace(/\s+/g, '').toUpperCase();
-      const ld  = dmfLineData[key];
       const qtyGrid = document.getElementById('dmf-qty-grid');
-      if (!ld) { qtyGrid.innerHTML = ''; return; }
+      const key = lineKey(dmfLine || '');
+      if (!key) { qtyGrid.innerHTML = ''; return; }
 
-      const occs = [ld.occ26, ld.occ27, ld.occ28, ld.occ29, ld.occ30];
-      const qtys = [ld.qty26, ld.qty27, ld.qty28, ld.qty29, ld.qty30];
+      const stats = lineStats[key] || { cycleTime: '-', trp: '-', shiftDay: '-', annualCapacity: 0 };
+      const cap   = stats.annualCapacity;
+
+      let trpFormatted = stats.trp;
+      if (stats.trp !== '-') {
+        let trpNum = Number(stats.trp);
+        if (!isNaN(trpNum)) {
+          if (trpNum <= 1 && trpNum > 0) trpNum = trpNum * 100;
+          trpFormatted = parseFloat(trpNum.toFixed(1)) + '%';
+        } else if (!String(stats.trp).includes('%')) {
+          trpFormatted += '%';
+        }
+      }
+      document.getElementById('m-ct').textContent  = stats.cycleTime;
+      document.getElementById('m-trp').textContent = trpFormatted;
+      document.getElementById('m-sd').textContent  = stats.shiftDay;
+      document.getElementById('m-cap').textContent = fmt(cap);
+
+      let v26 = 0, v27 = 0, v28 = 0, v29 = 0, v30 = 0;
+      globalData.forEach(row => {
+        if (lineKey(row.dmfLine || '') === key) {
+          v26+=row.vol26; v27+=row.vol27; v28+=row.vol28; v29+=row.vol29; v30+=row.vol30;
+        }
+      });
+
+      const occs = [v26, v27, v28, v29, v30].map(v => cap > 0 ? (v / cap) * 100 : 0);
+      const qtys = [v26, v27, v28, v29, v30];
 
       qtyGrid.innerHTML = ['2027','2028','2029','2030','2031'].map((yr, i) => {
         const pct = occs[i];
