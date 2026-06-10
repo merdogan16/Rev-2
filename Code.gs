@@ -182,7 +182,7 @@ function getLayoutImage(fileId) {
 }
 
 function getSpreadsheetData() {
-  const CACHE_KEY = 'spreadsheet_data_v2';
+  const CACHE_KEY = 'spreadsheet_data_v3';
   const cache = CacheService.getScriptCache();
   const cached = cache.get(CACHE_KEY);
   if (cached) {
@@ -266,6 +266,7 @@ function getSpreadsheetData() {
         diaphragmFurnace: diagFurnaceInfo,
         disk: String(row[18] || '').trim(),
         diskLine: String(row[19] || '').trim(),
+        diskFamilyGroup: String(row[27] || '').trim(),
         dmf: String(row[21] || '').trim(),
         dmfLine: String(row[22] || '').trim(),
         familyGroup: String(row[26] || '').trim(),
