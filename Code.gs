@@ -182,7 +182,7 @@ function getLayoutImage(fileId) {
 }
 
 function getSpreadsheetData() {
-  const CACHE_KEY = 'spreadsheet_data_v3';
+  const CACHE_KEY = 'spreadsheet_data_v4';
   const cache = CacheService.getScriptCache();
   const cached = cache.get(CACHE_KEY);
   if (cached) {
@@ -281,9 +281,23 @@ function getSpreadsheetData() {
       };
     }).filter(item => item.kit !== '');
 
+    // 4. E-DRIVE SHEET VERİLERİ
+    const eDriveSheet = mainSs.getSheetByName('E-Drive');
+    const eDriveData = [];
+    if (eDriveSheet) {
+      const eDriveLastRow = Math.max(eDriveSheet.getLastRow(), 1);
+      const eDriveRaw = eDriveSheet.getRange(1, 1, eDriveLastRow, 2).getValues();
+      eDriveRaw.forEach(row => {
+        const line = String(row[0] || '').trim();
+        const ref  = String(row[1] || '').trim();
+        if (line && ref) eDriveData.push({ line, ref });
+      });
+    }
+
     const result = {
       globalData: formattedData,
-      lineStats: lineStatsMap
+      lineStats: lineStatsMap,
+      eDriveData: eDriveData
     };
 
     try {
