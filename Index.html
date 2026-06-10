@@ -546,7 +546,12 @@
               <div class="border-t-[4px] border-orange-500 pt-3">
                 <div class="flex justify-between items-center mb-4">
                   <h4 id="pc-title" class="text-3xl font-extrabold">PFW</h4>
-                  <span id="pc-line-badge" class="hidden px-4 py-2 text-base rounded-md bg-orange-200/60 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 font-bold border border-orange-300/50 dark:border-orange-700/50 shadow-sm cursor-pointer hover:opacity-75 transition-opacity">-</span>
+                  <div class="flex items-center gap-2">
+                    <span id="pc-line-badge" class="hidden px-4 py-2 text-base rounded-md bg-orange-200/60 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 font-bold border border-orange-300/50 dark:border-orange-700/50 shadow-sm cursor-pointer hover:opacity-75 transition-opacity">-</span>
+                    <button onclick="document.getElementById('pfw-comp-panel').classList.add('hidden')" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors" title="Kapat">
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                  </div>
                 </div>
                 <div id="kd-pfw-comp-ref" class="text-4xl lg:text-5xl font-bold mb-4">-</div>
               </div>
