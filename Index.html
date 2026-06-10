@@ -1,0 +1,2433 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <title>C09 Capacity | Dashboard v3.0</title>
+  <meta name="theme-color" content="#89c341">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="C09 Cap">
+  <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%2389c341' rx='16'/%3E%3Ctext x='50' y='68' font-size='44' font-family='Arial' font-weight='900' fill='white' text-anchor='middle'%3EC9%3C/text%3E%3C/svg%3E">
+  <link rel="manifest" href='data:application/manifest+json,{"name":"C09 Capacity Dashboard","short_name":"C09 Cap","display":"standalone","orientation":"portrait","background_color":"%23e6f3f8","theme_color":"%2389c341","start_url":"."}'>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: { extend: { colors: { valeo: { green: '#89c341', blue: '#0072b5', cardInner: '#e6f0f5', cardBorder: '#d0e0ea' } } } }
+    }
+  </script>
+  <style>
+    body { background: linear-gradient(-45deg, #e6f3f8, #dcf0f8, #e0f2fe, #eaf6f4); background-size: 400% 400%; animation: gradientBG 15s ease infinite; transition: background-color 0.3s ease; }
+    html.dark body { background: linear-gradient(-45deg, #0f172a, #020617, #001e2b, #091e0e); }
+    .prod-img-3d { transform: perspective(500px) rotateX(18deg) rotateY(-14deg) scale(1.08); filter: drop-shadow(10px 22px 16px rgba(0,0,0,0.5)); transition: transform 0.4s ease, filter 0.4s ease; mix-blend-mode: multiply; }
+    .group:hover .prod-img-3d { transform: perspective(500px) rotateX(5deg) rotateY(-3deg) scale(1.18); filter: drop-shadow(4px 12px 24px rgba(0,0,0,0.6)); }
+    .card-img { transform: scale(0.93); transition: transform 0.35s ease; object-fit: contain; width: 100%; height: 100%; }
+    .group:hover .card-img { transform: scale(0.99); }
+
+    /* ─── Premium Kabartmalı Tasarım ──────────────────────────────────────────── */
+    .product-card {
+      background: linear-gradient(160deg, #ffffff 0%, #f2f9ff 55%, #eaf4fc 100%);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,1), 0 2px 4px rgba(0,0,0,0.04), 0 8px 20px rgba(0,0,0,0.07), 0 24px 48px rgba(0,0,0,0.04);
+      border: 1px solid rgba(255,255,255,0.9) !important;
+      transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.4s ease !important;
+    }
+    .product-card:hover {
+      transform: translateY(-14px) scale(1.03) !important;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,1), 0 8px 16px rgba(0,0,0,0.06), 0 24px 48px rgba(100,160,220,0.18), 0 48px 96px rgba(0,0,0,0.07) !important;
+    }
+    html.dark .product-card {
+      background: linear-gradient(160deg, #1c2d42 0%, #121e2e 55%, #0c1520 100%);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.07), 0 8px 24px rgba(0,0,0,0.5), 0 24px 48px rgba(0,0,0,0.35);
+      border: 1px solid rgba(255,255,255,0.07) !important;
+    }
+    html.dark .product-card:hover { transform: translateY(-14px) scale(1.03) !important; }
+    .img-well {
+      background: radial-gradient(ellipse at 35% 25%, #f7fafd 0%, #eaf2f8 50%, #dde8f1 100%);
+      box-shadow: inset 2px 2px 7px rgba(0,0,0,0.09), inset -2px -2px 7px rgba(255,255,255,0.95);
+      isolation: isolate;
+      transform: translateZ(0);
+    }
+    html.dark .img-well {
+      background: radial-gradient(ellipse at 35% 25%, #1c2d42 0%, #121e2e 50%, #0c1520 100%);
+      box-shadow: inset 2px 2px 8px rgba(0,0,0,0.55), inset -2px -2px 6px rgba(255,255,255,0.03);
+    }
+    .glass-panel {
+      background: linear-gradient(160deg, rgba(255,255,255,0.88) 0%, rgba(232,246,255,0.78) 100%);
+      backdrop-filter: blur(28px); -webkit-backdrop-filter: blur(28px);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.92), 0 4px 16px rgba(0,0,0,0.05), 0 24px 56px rgba(0,0,0,0.07);
+      border: 1px solid rgba(255,255,255,0.68);
+    }
+    html.dark .glass-panel {
+      background: linear-gradient(160deg, rgba(28,45,66,0.92) 0%, rgba(12,21,32,0.88) 100%);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 4px 16px rgba(0,0,0,0.4), 0 24px 56px rgba(0,0,0,0.5);
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+    .stat-pill {
+      background: linear-gradient(145deg, #ffffff 0%, #f4f8fc 100%);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.9), 0 2px 6px rgba(0,0,0,0.06), 0 8px 16px rgba(0,0,0,0.04);
+      border: 1px solid rgba(210,228,240,0.8);
+    }
+    html.dark .stat-pill {
+      background: linear-gradient(145deg, #1c2d42 0%, #0f1e2d 100%);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 2px 6px rgba(0,0,0,0.3);
+      border: 1px solid rgba(255,255,255,0.07);
+    }
+    .grad-green { background: linear-gradient(135deg, #89c341 0%, #4d8c10 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .grad-blue  { background: linear-gradient(135deg, #0072b5 0%, #004080 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .grad-purple{ background: linear-gradient(135deg, #9333ea 0%, #581c87 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .section-label { font-size: 0.6rem; font-weight: 800; letter-spacing: 0.18em; text-transform: uppercase; padding: 5px 12px; border-radius: 999px; background: rgba(137,195,65,0.1); color: #4d8c10; border: 1px solid rgba(137,195,65,0.22); }
+    html.dark .section-label { background: rgba(137,195,65,0.08); color: #89c341; border-color: rgba(137,195,65,0.18); }
+    @keyframes gradientBG { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    /* Mobile / PWA */
+    body { padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
+    select, input[type="text"] { font-size: 16px; } /* iOS zoom önleme */
+    #sidebarChevron { transition: transform 0.2s ease; }
+    #layoutModalImg { image-rendering: high-quality; cursor: grab; user-select: none; transition: opacity 0.4s ease; }
+    #layoutModalImg.entry-anim { animation: layoutEntry 0.5s cubic-bezier(0.22,1,0.36,1) forwards; }
+    #layoutModalImg.dragging { cursor: grabbing; }
+    @keyframes layoutEntry {
+      from { opacity:0; transform: scale(0.92); }
+      to   { opacity:1; transform: scale(1); }
+    }
+    #layoutZoomArea { overflow: hidden; cursor: grab; border-radius: 1rem; background: rgba(255,255,255,0.03); max-height: 80vh; }
+    @media (max-width: 1023px) {
+      .mobile-card-sm { padding: 0.75rem !important; }
+    }
+    /* Sidebar daraltılmış/genişleyen kolon (yalnızca masaüstü — kapalıyken yalnızca amblem görünür, üzerine gelince genişler ve kartları sağa iter) */
+    @media (min-width: 1024px) {
+      #dashboardGrid {
+        grid-template-columns: 88px minmax(0, 1fr) !important;
+        transition: grid-template-columns 0.4s cubic-bezier(0.4,0,0.2,1);
+      }
+      #dashboardGrid.sidebar-open {
+        grid-template-columns: min(380px, 34vw) minmax(0, 1fr) !important;
+      }
+      #sidebarArea {
+        grid-column: 1 / 2 !important;
+        align-self: start;
+        position: relative;
+        overflow: hidden;
+        border-radius: 1.25rem;
+        padding: 0 0.5rem;
+        max-height: 480px;
+        transition: max-height 0.4s cubic-bezier(0.4,0,0.2,1);
+        background: rgba(255,255,255,.6);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(148,163,184,.2);
+        box-shadow: 0 4px 24px -10px rgba(15,23,42,.18);
+      }
+      #dashboardGrid.sidebar-open #sidebarArea { max-height: 820px; }
+      html.dark #sidebarArea { background: rgba(30,41,59,.55); border-color: rgba(71,85,105,.3); }
+
+      #sidebarEmblem {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        color: #16a34a;
+        opacity: 1;
+        transition: opacity 0.2s ease;
+        pointer-events: none;
+      }
+      #sidebarEmblem span {
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: .14em;
+        text-transform: uppercase;
+        color: #64748b;
+        writing-mode: vertical-rl;
+      }
+      #sidebarContent {
+        opacity: 0;
+        width: 100%;
+        transition: opacity 0.25s ease;
+        transition-delay: 0s;
+      }
+      #dashboardGrid.sidebar-open #sidebarEmblem {
+        opacity: 0;
+      }
+      #dashboardGrid.sidebar-open #sidebarContent {
+        opacity: 1;
+        transition-delay: 0.12s;
+      }
+      #mainArea { grid-column: 2 / 3 !important; min-width: 0; }
+    }
+    /* Sağ üst kontrol çubuğu (dil / tema / sıfırla) — her zaman görünür, sayfayla birlikte kaymaz */
+    #topControls {
+      position: fixed;
+      top: max(14px, env(safe-area-inset-top));
+      right: max(14px, calc(env(safe-area-inset-right) + 4px));
+      z-index: 40;
+    }
+  </style>
+</head>
+<body class="min-h-screen text-slate-800 dark:text-slate-100 font-sans p-3 md:p-8">
+
+  <div id="topControls" class="flex items-center gap-2">
+    <button id="langToggle" class="px-3 py-1.5 rounded-full bg-white/70 dark:bg-slate-800/90 backdrop-blur-sm border border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-600 dark:text-slate-300 outline-none shadow-sm hover:bg-white dark:hover:bg-slate-700 transition-all" aria-label="Dil değiştir / Switch language">
+      <span id="langLabel">EN</span>
+    </button>
+    <button id="themeToggle" class="p-2 rounded-full bg-white/70 dark:bg-slate-800/90 backdrop-blur-sm border border-slate-200 dark:border-slate-700 outline-none shadow-sm hover:bg-white dark:hover:bg-slate-700 transition-all" aria-label="Karanlık / Aydınlık mod" data-i18n-aria="themeToggleLabel">
+      <svg class="w-6 h-6 text-slate-600 dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+      <svg class="w-6 h-6 hidden dark:block text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+    </button>
+    <button id="resetBtn" class="p-2 rounded-full bg-white/70 dark:bg-slate-800/90 backdrop-blur-sm border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 outline-none shadow-sm hover:bg-white dark:hover:bg-slate-700 transition-all" aria-label="Sıfırla" title="Sıfırla" data-i18n-aria="reset" data-i18n-title="reset">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+    </button>
+  </div>
+
+  <div id="dashboardGrid" class="max-w-[1600px] mx-auto grid grid-cols-12 gap-6 lg:gap-8">
+    <aside id="sidebarArea" class="col-span-12 lg:col-span-3 flex flex-col gap-6">
+      <div id="sidebarEmblem" class="hidden lg:flex" aria-hidden="true">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+        <span data-i18n="explore">Veri Keşfi</span>
+      </div>
+      <div id="sidebarContent" class="flex flex-col gap-6">
+      <!-- Valeo Logo -->
+      <div id="sidebar-logo" class="px-4 py-2 mb-1 overflow-hidden transition-all duration-300">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2b/Valeo_Logo.svg/960px-Valeo_Logo.svg.png"
+             alt="Valeo"
+             class="w-full max-w-[160px] object-contain mx-auto block">
+      </div>
+      <header class="flex items-center justify-between">
+        <div>
+          <h1 class="text-2xl font-bold text-valeo-green flex items-center gap-2">C09 Capacity</h1>
+          <p class="text-sm text-slate-500 uppercase tracking-wider mt-1">Valeo Otomotiv</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button id="sidebarToggle" class="lg:hidden flex items-center gap-1 px-3 py-1.5 rounded-full bg-white/50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none shadow-sm">
+            <svg class="w-5 h-5 text-slate-600 dark:text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            <svg id="sidebarChevron" class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
+          </button>
+        </div>
+      </header>
+
+      <section id="searchPanel" class="hidden lg:flex flex-col gap-4">
+        <h2 data-i18n="explore" class="text-base font-semibold uppercase tracking-widest text-slate-500">Veri Keşfi</h2>
+
+        <div class="flex flex-col gap-2">
+          <label for="kitFilter" data-i18n="kitSelectLabel" class="text-sm font-bold text-slate-700 dark:text-slate-300">Kit Referansı Seç</label>
+          <select id="kitSelect" class="w-full bg-white/60 dark:bg-slate-800 border border-valeo-cardBorder dark:border-slate-700 rounded-lg p-3 text-base outline-none shadow-sm backdrop-blur-sm">
+            <option value="">Yükleniyor...</option>
+          </select>
+        </div>
+
+        <div class="flex items-center justify-center py-2">
+          <span data-i18n="or" class="text-sm text-slate-400 font-bold uppercase">VEYA</span>
+        </div>
+
+        <div class="flex flex-col gap-2">
+          <label for="compSearch" data-i18n="searchLabel" class="text-sm font-bold text-slate-700 dark:text-slate-300">Arama (Kit, Komponent, Hat)</label>
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            </div>
+            <input type="text" id="compSearch" data-i18n-placeholder="searchPlaceholder" placeholder="Örn: 58, VD veya HD" class="w-full pl-10 pr-3 py-3 bg-white/60 dark:bg-slate-800 border border-valeo-cardBorder dark:border-slate-700 rounded-lg text-base outline-none shadow-sm placeholder-slate-400 backdrop-blur-sm" autocomplete="off">
+            <div id="recentSearchDropdown" class="hidden absolute left-0 right-0 top-full mt-1 bg-white dark:bg-slate-800 border border-valeo-cardBorder dark:border-slate-700 rounded-lg shadow-lg z-50 overflow-hidden"></div>
+          </div>
+        </div>
+
+        <!-- Hızlı Bağlantılar -->
+        <div class="pt-2">
+          <p class="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3" data-i18n="quickAccess">Hızlı Erişim</p>
+          <div class="flex flex-col gap-2">
+            <a href="https://drive.google.com/drive/folders/1-QTWDhrvt6OsFx_Bowj6fnBOzTmpKTu5?usp=drive_link" target="_blank" rel="noopener" class="flex items-center gap-3 px-4 py-2.5 rounded-lg bg-white/60 dark:bg-slate-800 border border-valeo-cardBorder dark:border-slate-700 text-slate-700 dark:text-slate-200 font-semibold text-sm hover:bg-amber-50 dark:hover:bg-slate-700 hover:border-amber-300 dark:hover:border-amber-600 transition-all shadow-sm group">
+              <svg class="w-4 h-4 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+              FMEA
+              <svg class="w-3 h-3 ml-auto text-slate-400 group-hover:text-amber-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+            </a>
+            <a href="https://docs.google.com/spreadsheets/d/1WRHoLp3Vf30mbPo8fT_U9bU2qvbVfwoexV2Qd2YbvdM/edit?usp=drive_link" target="_blank" rel="noopener" class="flex items-center gap-3 px-4 py-2.5 rounded-lg bg-white/60 dark:bg-slate-800 border border-valeo-cardBorder dark:border-slate-700 text-slate-700 dark:text-slate-200 font-semibold text-sm hover:bg-green-50 dark:hover:bg-slate-700 hover:border-green-300 dark:hover:border-green-600 transition-all shadow-sm group">
+              <svg class="w-4 h-4 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 0v10m0-10a2 2 0 012 2h2a2 2 0 012-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/></svg>
+              Lokal Tedarikçi Listesi
+              <svg class="w-3 h-3 ml-auto text-slate-400 group-hover:text-green-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+            </a>
+            <a href="https://docs.google.com/spreadsheets/d/1Bh57KlNX16K0OtYdGAnT-SHlbsjMlj6gzfMptFS259s/edit?usp=drive_link" target="_blank" rel="noopener" class="flex items-center gap-3 px-4 py-2.5 rounded-lg bg-white/60 dark:bg-slate-800 border border-valeo-cardBorder dark:border-slate-700 text-slate-700 dark:text-slate-200 font-semibold text-sm hover:bg-blue-50 dark:hover:bg-slate-700 hover:border-blue-300 dark:hover:border-blue-600 transition-all shadow-sm group">
+              <svg class="w-4 h-4 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 0v10m0-10a2 2 0 012 2h2a2 2 0 012-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/></svg>
+              Sarsak Listesi
+              <svg class="w-3 h-3 ml-auto text-slate-400 group-hover:text-blue-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+            </a>
+            <a href="https://docs.google.com/spreadsheets/d/1PATsTEs6hxznvACbkcYMps5XUe24aSokn6OldocQ9Lc/edit?usp=drive_link" target="_blank" rel="noopener" class="flex items-center gap-3 px-4 py-2.5 rounded-lg bg-white/60 dark:bg-slate-800 border border-valeo-cardBorder dark:border-slate-700 text-slate-700 dark:text-slate-200 font-semibold text-sm hover:bg-purple-50 dark:hover:bg-slate-700 hover:border-purple-300 dark:hover:border-purple-600 transition-all shadow-sm group">
+              <svg class="w-4 h-4 text-purple-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
+              Barkod Reader Listesi
+              <svg class="w-3 h-3 ml-auto text-slate-400 group-hover:text-purple-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+            </a>
+            <a href="https://docs.google.com/spreadsheets/d/1gOlyEKxYfIf3LMwbJw6cPhYmcGr1mMT6/edit?usp=drive_link" target="_blank" rel="noopener" class="flex items-center gap-3 px-4 py-2.5 rounded-lg bg-white/60 dark:bg-slate-800 border border-valeo-cardBorder dark:border-slate-700 text-slate-700 dark:text-slate-200 font-semibold text-sm hover:bg-teal-50 dark:hover:bg-slate-700 hover:border-teal-300 dark:hover:border-teal-600 transition-all shadow-sm group">
+              <svg class="w-4 h-4 text-teal-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
+              Modula Master List
+              <svg class="w-3 h-3 ml-auto text-slate-400 group-hover:text-teal-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+            </a>
+            <a href="https://docs.google.com/spreadsheets/d/1dX0jpVfzQQYen9XF26NSaHvvWedTdIlfYYZ0CWDp948/edit?usp=drive_link" target="_blank" rel="noopener" class="flex items-center gap-3 px-4 py-2.5 rounded-lg bg-white/60 dark:bg-slate-800 border border-valeo-cardBorder dark:border-slate-700 text-slate-700 dark:text-slate-200 font-semibold text-sm hover:bg-orange-50 dark:hover:bg-slate-700 hover:border-orange-300 dark:hover:border-orange-600 transition-all shadow-sm group">
+              <svg class="w-4 h-4 text-orange-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+              New Project Commissioning
+              <svg class="w-3 h-3 ml-auto text-slate-400 group-hover:text-orange-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+            </a>
+          </div>
+        </div>
+      </section>
+      </div>
+    </aside>
+
+    <main id="mainArea" class="col-span-12 lg:col-span-9">
+
+      <nav id="breadcrumb" aria-label="Breadcrumb" class="hidden flex flex-wrap items-center gap-x-1.5 gap-y-1 mb-3 text-sm"></nav>
+
+      <div id="backBtnWrapper" class="hidden mb-4">
+        <button id="backBtn" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/60 dark:bg-slate-800 border border-valeo-cardBorder dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold text-sm hover:bg-[#cfdbe3] dark:hover:bg-slate-700 transition-all shadow-sm outline-none">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/>
+          </svg>
+          <span data-i18n="back">Geri</span>
+        </button>
+      </div>
+
+      <div id="loadingState" class="glass-panel rounded-2xl p-6">
+        <div class="animate-pulse flex flex-col gap-5">
+          <div class="flex justify-between items-center">
+            <div class="h-8 bg-slate-200 dark:bg-slate-700 rounded-lg w-1/3"></div>
+            <div class="h-6 bg-slate-200 dark:bg-slate-700 rounded-lg w-1/4"></div>
+          </div>
+          <div class="grid grid-cols-5 gap-2">
+            <div class="h-16 bg-slate-200 dark:bg-slate-700 rounded-lg"></div>
+            <div class="h-16 bg-slate-200 dark:bg-slate-700 rounded-lg"></div>
+            <div class="h-16 bg-slate-200 dark:bg-slate-700 rounded-lg"></div>
+            <div class="h-16 bg-slate-200 dark:bg-slate-700 rounded-lg"></div>
+            <div class="h-16 bg-slate-200 dark:bg-slate-700 rounded-lg"></div>
+          </div>
+          <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mt-2">
+            <div class="flex flex-col gap-3">
+              <div class="h-6 bg-slate-200 dark:bg-slate-700 rounded w-2/5"></div>
+              <div class="h-12 bg-slate-200 dark:bg-slate-700 rounded-lg"></div>
+              <div class="grid grid-cols-3 gap-2"><div class="h-16 bg-slate-200 dark:bg-slate-700 rounded-lg"></div><div class="h-16 bg-slate-200 dark:bg-slate-700 rounded-lg"></div><div class="h-16 bg-slate-200 dark:bg-slate-700 rounded-lg"></div></div>
+              <div class="h-56 bg-slate-200 dark:bg-slate-700 rounded-xl"></div>
+            </div>
+            <div class="flex flex-col gap-3">
+              <div class="h-6 bg-slate-200 dark:bg-slate-700 rounded w-2/5"></div>
+              <div class="h-12 bg-slate-200 dark:bg-slate-700 rounded-lg"></div>
+              <div class="grid grid-cols-3 gap-2"><div class="h-16 bg-slate-200 dark:bg-slate-700 rounded-lg"></div><div class="h-16 bg-slate-200 dark:bg-slate-700 rounded-lg"></div><div class="h-16 bg-slate-200 dark:bg-slate-700 rounded-lg"></div></div>
+              <div class="h-56 bg-slate-200 dark:bg-slate-700 rounded-xl"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="emptyState" class="hidden flex flex-col items-center justify-center min-h-[440px] glass-panel rounded-3xl p-10 gap-8">
+        <div class="flex flex-col items-center gap-2">
+          <span class="section-label" data-i18n="quickAccess">Hızlı Erişim</span>
+          <p class="text-slate-700 dark:text-slate-200 text-lg font-bold tracking-tight" data-i18n="startByClicking">Ürüne tıklayarak başlayın</p>
+        </div>
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-6 w-full">
+
+          <!-- PPCA -->
+          <div onclick="quickSearch('PPCA')" class="product-card group cursor-pointer flex flex-col items-center gap-4 p-6 rounded-2xl">
+            <div class="img-well w-56 h-56 flex items-center justify-center overflow-hidden rounded-xl">
+              <img src="https://drive.google.com/thumbnail?id=1ozE4BJmwQBjpcsSHMBYz0iUAxuECkct5&sz=w1000" alt="PPCA" class="card-img" onerror="this.style.display='none';this.nextElementSibling.style.display='block'" />
+              <span style="display:none" class="text-slate-400 text-xs text-center" data-i18n="imageLoadFail">Görsel yüklenemedi</span>
+            </div>
+            <div class="text-center">
+              <span class="block text-xl font-black grad-green">PPCA</span>
+              <span class="block text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-semibold tracking-wide">Pressure Plate Cover</span>
+            </div>
+          </div>
+
+          <!-- DISK -->
+          <div onclick="quickSearch('Disk')" class="product-card group cursor-pointer flex flex-col items-center gap-4 p-6 rounded-2xl">
+            <div class="img-well w-56 h-56 flex items-center justify-center overflow-hidden rounded-xl">
+              <img src="https://drive.google.com/thumbnail?id=1x895tWOJdbQcTu3EkLGqJT8Al67dcNqk&sz=w1000" alt="Disk" class="card-img" style="transform:scale(0.78)" onmouseover="this.style.transform='scale(0.85)'" onmouseout="this.style.transform='scale(0.78)'" onerror="this.style.display='none';this.nextElementSibling.style.display='block'" />
+              <span style="display:none" class="text-slate-400 text-xs text-center" data-i18n="imageLoadFail">Görsel yüklenemedi</span>
+            </div>
+            <div class="text-center">
+              <span class="block text-xl font-black grad-blue">Disk</span>
+              <span class="block text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-semibold tracking-wide">Clutch Disk</span>
+            </div>
+          </div>
+
+          <!-- DMF -->
+          <div onclick="quickSearch('DMF')" class="product-card group cursor-pointer flex flex-col items-center gap-4 p-6 rounded-2xl">
+            <div class="img-well w-56 h-56 flex items-center justify-center overflow-hidden rounded-xl">
+              <img src="https://drive.google.com/thumbnail?id=1IA_2ecHl8qSM26UMbcyOIOo43Hji2kHL&sz=w1000" alt="DMF" class="card-img" onerror="this.style.display='none';this.nextElementSibling.style.display='block'" />
+              <span style="display:none" class="text-slate-400 text-xs text-center" data-i18n="imageLoadFail">Görsel yüklenemedi</span>
+            </div>
+            <div class="text-center">
+              <span class="block text-xl font-black grad-purple">DMF</span>
+              <span class="block text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-semibold tracking-wide">Dual Mass Flywheel</span>
+            </div>
+          </div>
+
+          <!-- e-Drive -->
+          <div onclick="quickSearch('e-Drive')" class="product-card group cursor-pointer flex flex-col items-center gap-4 p-6 rounded-2xl">
+            <div class="img-well w-56 h-56 flex items-center justify-center overflow-hidden rounded-xl">
+              <img id="edrive-img" src="" alt="e-Drive" class="card-img hidden" style="transform:scale(0.72);object-fit:contain" onmouseover="this.style.transform='scale(0.79)'" onmouseout="this.style.transform='scale(0.72)'" />
+              <div id="edrive-loader" class="w-8 h-8 border-4 border-slate-200 border-t-valeo-green rounded-full animate-spin"></div>
+            </div>
+            <div class="text-center">
+              <span class="block text-xl font-black grad-green">e-Drive</span>
+              <span class="block text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-semibold tracking-wide">Electric Drive</span>
+            </div>
+          </div>
+
+        </div>
+        <p class="text-slate-400 dark:text-slate-500 text-xs font-medium tracking-wide" data-i18n="orSearchLeftMenu">veya soldaki menüden arama yapın</p>
+      </div>
+
+      <div id="kitDetailView" class="hidden flex flex-col gap-6">
+        <div class="glass-panel rounded-2xl p-5 flex flex-col xl:flex-row justify-between xl:items-center gap-6">
+          <div>
+            <h3 data-i18n="selectedKit" class="text-sm font-bold text-valeo-blue uppercase tracking-wider mb-2">Seçili Kit Referansı</h3>
+            <p id="kd-kitname" class="text-4xl md:text-5xl font-black tracking-tight text-slate-800 dark:text-white">-</p>
+            <div id="kd-customer-row" class="hidden mt-3 flex flex-wrap items-center gap-2">
+              <span id="kd-cust-code" class="cursor-pointer px-3 py-1.5 text-xs font-bold rounded-full bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 border border-orange-200 dark:border-orange-800 hover:bg-orange-200 dark:hover:bg-orange-800/50 transition-colors" title="Bu müşterinin tüm referanslarını ara" data-i18n-title="searchAllCustomerRefs"></span>
+              <svg class="w-3 h-3 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+              <span id="kd-cust-detail" class="text-xs font-semibold text-slate-600 dark:text-slate-300 cursor-pointer hover:text-valeo-blue dark:hover:text-valeo-green transition-colors" title="Bu müşteri detayının referanslarını ara" data-i18n-title="searchCustomerDetailRefs"></span>
+              <svg class="w-3 h-3 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+              <span id="kd-cust-name" class="text-xs font-bold text-slate-700 dark:text-slate-200"></span>
+            </div>
+          </div>
+          <div class="w-full xl:w-auto xl:min-w-[450px]">
+            <h3 data-i18n="annualVolume" class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 xl:text-right">Bu Kit İçin Yıllık Üretim Beklentisi (Adet)</h3>
+            <div class="grid grid-cols-5 gap-1 sm:gap-2 text-center">
+              <div class="stat-pill rounded-lg p-1.5 sm:p-3"><span class="block text-[10px] sm:text-xs text-slate-500 font-bold mb-0.5">2027</span><span id="kd-kit-v26" class="font-black text-xs sm:text-base text-slate-800 dark:text-slate-200">0</span><span id="kd-kit-t26" class="block text-[9px] font-bold mt-0.5 text-slate-400"></span></div>
+              <div class="stat-pill rounded-lg p-1.5 sm:p-3"><span class="block text-[10px] sm:text-xs text-slate-500 font-bold mb-0.5">2028</span><span id="kd-kit-v27" class="font-black text-xs sm:text-base text-slate-800 dark:text-slate-200">0</span><span id="kd-kit-t27" class="block text-[9px] font-bold mt-0.5"></span></div>
+              <div class="stat-pill rounded-lg p-1.5 sm:p-3"><span class="block text-[10px] sm:text-xs text-slate-500 font-bold mb-0.5">2029</span><span id="kd-kit-v28" class="font-black text-xs sm:text-base text-slate-800 dark:text-slate-200">0</span><span id="kd-kit-t28" class="block text-[9px] font-bold mt-0.5"></span></div>
+              <div class="stat-pill rounded-lg p-1.5 sm:p-3"><span class="block text-[10px] sm:text-xs text-slate-500 font-bold mb-0.5">2030</span><span id="kd-kit-v29" class="font-black text-xs sm:text-base text-slate-800 dark:text-slate-200">0</span><span id="kd-kit-t29" class="block text-[9px] font-bold mt-0.5"></span></div>
+              <div class="stat-pill rounded-lg p-1.5 sm:p-3"><span class="block text-[10px] sm:text-xs text-slate-500 font-bold mb-0.5">2031</span><span id="kd-kit-v30" class="font-black text-xs sm:text-base text-slate-800 dark:text-slate-200">0</span><span id="kd-kit-t30" class="block text-[9px] font-bold mt-0.5"></span></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="components-grid" class="grid grid-cols-1 xl:grid-cols-2 gap-8 mt-2">
+
+          <div id="ppca-column" class="flex flex-col gap-4">
+            <div class="border-t-[4px] border-valeo-green pt-3">
+              <div class="flex justify-between items-center mb-4">
+                <h4 class="text-3xl font-extrabold">PPCA</h4>
+                <div class="flex items-center gap-2">
+                  <span id="ppca-line-badge" class="px-4 py-2 text-base rounded-md bg-[#dcfce7] dark:bg-green-900/40 text-slate-700 dark:text-green-300 font-bold border border-[#bbf7d0] dark:border-green-800/50 shadow-sm cursor-pointer hover:opacity-75 transition-opacity" title="Bu hattaki tüm kitleri ara" data-i18n-title="searchAllKitsOnLine">-</span>
+                  <button id="ppca-layout-btn" class="hidden px-3 py-2 text-xs rounded-md bg-valeo-green/20 text-valeo-green border border-valeo-green/40 font-bold hover:bg-valeo-green/30 transition-colors flex items-center gap-1.5" title="Hat layoutunu görüntüle" data-i18n-title="viewLineLayout">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
+                    <span data-i18n="layout">Layout</span>
+                  </button>
+                  <a id="ppca-docs-btn" href="#" target="_blank" rel="noopener" class="hidden px-3 py-2 text-xs rounded-md bg-valeo-green/20 text-valeo-green border border-valeo-green/40 font-bold hover:bg-valeo-green/30 transition-colors flex items-center gap-1.5" title="Hat dökümanları" data-i18n-title="lineDocs">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+                    <span data-i18n="documents">Dökümanlar</span>
+                  </a>
+                </div>
+              </div>
+              <div id="kd-ppca" class="text-4xl lg:text-5xl font-bold mb-2">-</div>
+              <div class="mb-3">
+                <span id="kd-family-group" class="hidden inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-full bg-valeo-green/10 text-valeo-green border border-valeo-green/25 tracking-wide cursor-pointer hover:bg-valeo-green/20 transition-colors" title="Bu aile grubunu ara" data-i18n-title="searchFamilyGroup"></span>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-3 gap-3">
+              <div class="stat-pill p-4 rounded-xl"><span class="block text-xs font-bold uppercase text-slate-500 mb-1">Cycle Time</span><span id="p-ct" class="font-black text-xl text-slate-700 dark:text-slate-200">-</span></div>
+              <div class="stat-pill p-4 rounded-xl"><span class="block text-xs font-bold uppercase text-slate-500 mb-1">TRP</span><span id="p-trp" class="font-black text-xl text-slate-700 dark:text-slate-200">-</span></div>
+              <div class="stat-pill p-4 rounded-xl"><span class="block text-xs font-bold uppercase text-slate-500 mb-1">Shift / Day</span><span id="p-sd" class="font-black text-xl text-slate-700 dark:text-slate-200">-</span></div>
+            </div>
+
+            <div class="glass-panel rounded-xl p-5 flex flex-col">
+              <div class="flex justify-between items-end mb-4">
+                <span data-i18n="annualChart" class="text-sm font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Yıllık Hat Doluluk Grafiği (%)</span>
+                <span class="text-xs font-bold text-slate-500"><span data-i18n="annualCapacity">Yıllık Kapasite:</span> <span id="p-cap" class="text-slate-800 dark:text-white">-</span></span>
+              </div>
+              <div class="relative w-full h-56 mt-2">
+                <canvas id="ppcaChart"></canvas>
+              </div>
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-4 mt-2">
+              <div class="flex-1 glass-panel p-6 rounded-2xl">
+                <span class="block text-sm text-slate-500 font-bold uppercase mb-2">Cover</span>
+                <span class="font-bold text-slate-800 dark:text-slate-200 text-3xl" id="kd-cover">-</span>
+              </div>
+              <div class="flex-1 glass-panel p-6 rounded-2xl flex flex-col justify-between items-start">
+                <div>
+                  <span class="block text-sm text-slate-500 font-bold uppercase mb-2">Diaphragm</span>
+                  <span class="font-bold text-slate-800 dark:text-slate-200 text-3xl" id="kd-diaphragm">-</span>
+                </div>
+                <div class="mt-4 text-sm font-bold text-purple-700 dark:text-purple-300 bg-purple-200/60 dark:bg-purple-900/40 px-3 py-1.5 rounded-md border border-purple-300/50 dark:border-purple-700/50 inline-block" id="kd-diagFurnace">-</div>
+              </div>
+            </div>
+          </div>
+
+          <div id="disk-column" class="flex flex-col gap-4">
+            <div id="disk-section" class="flex flex-col gap-4">
+              <div class="border-t-[4px] border-valeo-blue pt-3">
+                <div class="flex justify-between items-center mb-4">
+                  <h4 class="text-3xl font-extrabold">Disk</h4>
+                  <div class="flex items-center gap-2">
+                    <span id="disk-line-badge" class="px-4 py-2 text-base rounded-md bg-[#bae6fd] dark:bg-blue-900/40 text-slate-700 dark:text-blue-300 font-bold border border-[#7dd3fc] dark:border-blue-800/50 shadow-sm cursor-pointer hover:opacity-75 transition-opacity" title="Bu hattaki tüm kitleri ara" data-i18n-title="searchAllKitsOnLine">-</span>
+                    <button id="disk-layout-btn" class="hidden px-3 py-2 text-xs rounded-md bg-valeo-blue/20 text-valeo-blue border border-valeo-blue/40 font-bold hover:bg-valeo-blue/30 transition-colors flex items-center gap-1.5" title="Hat layoutunu görüntüle" data-i18n-title="viewLineLayout">
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
+                      <span data-i18n="layout">Layout</span>
+                    </button>
+                    <a id="disk-docs-btn" href="#" target="_blank" rel="noopener" class="hidden px-3 py-2 text-xs rounded-md bg-valeo-blue/20 text-valeo-blue border border-valeo-blue/40 font-bold hover:bg-valeo-blue/30 transition-colors flex items-center gap-1.5" title="Hat dökümanları" data-i18n-title="lineDocs">
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+                      <span data-i18n="documents">Dökümanlar</span>
+                    </a>
+                  </div>
+                </div>
+                <div id="kd-disk" class="text-4xl lg:text-5xl font-bold mb-4">-</div>
+              </div>
+
+              <div class="grid grid-cols-3 gap-3">
+                <div class="stat-pill p-4 rounded-xl"><span class="block text-xs font-bold uppercase text-slate-500 mb-1">Cycle Time</span><span id="d-ct" class="font-black text-xl text-slate-700 dark:text-slate-200">-</span></div>
+                <div class="stat-pill p-4 rounded-xl"><span class="block text-xs font-bold uppercase text-slate-500 mb-1">TRP</span><span id="d-trp" class="font-black text-xl text-slate-700 dark:text-slate-200">-</span></div>
+                <div class="stat-pill p-4 rounded-xl"><span class="block text-xs font-bold uppercase text-slate-500 mb-1">Shift / Day</span><span id="d-sd" class="font-black text-xl text-slate-700 dark:text-slate-200">-</span></div>
+              </div>
+
+              <div class="glass-panel rounded-xl p-5 flex flex-col">
+                <div class="flex justify-between items-end mb-4">
+                  <span data-i18n="annualChart" class="text-sm font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Yıllık Hat Doluluk Grafiği (%)</span>
+                  <span class="text-xs font-bold text-slate-500"><span data-i18n="annualCapacity">Yıllık Kapasite:</span> <span id="d-cap" class="text-slate-800 dark:text-white">-</span></span>
+                </div>
+                <div class="relative w-full h-56 mt-2">
+                  <canvas id="diskChart"></canvas>
+                </div>
+              </div>
+            </div>
+
+            <div id="dmf-card" class="flex flex-col gap-4">
+              <div class="border-t-[4px] border-purple-500 pt-3">
+                <div class="flex justify-between items-center mb-4">
+                  <h4 class="text-3xl font-extrabold">DMF</h4>
+                  <div class="flex items-center gap-2">
+                    <span id="dmf-line-badge" class="hidden px-4 py-2 text-base rounded-md bg-purple-200/60 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 font-bold border border-purple-300/50 dark:border-purple-700/50 shadow-sm cursor-pointer hover:opacity-75 transition-opacity" title="DMF hatlarını ara" data-i18n-title="searchDmfLines">-</span>
+                    <button id="dmf-layout-btn" class="hidden px-3 py-2 text-xs rounded-md bg-purple-200/60 text-purple-700 border border-purple-300/50 font-bold hover:bg-purple-300/60 transition-colors flex items-center gap-1.5 dark:bg-purple-900/40 dark:text-purple-300 dark:border-purple-700/50 dark:hover:bg-purple-900/60" title="Hat layoutunu görüntüle" data-i18n-title="viewLineLayout">
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
+                      <span data-i18n="layout">Layout</span>
+                    </button>
+                    <a id="dmf-docs-btn" href="#" target="_blank" rel="noopener" class="hidden px-3 py-2 text-xs rounded-md bg-purple-200/60 text-purple-700 border border-purple-300/50 font-bold hover:bg-purple-300/60 transition-colors flex items-center gap-1.5 dark:bg-purple-900/40 dark:text-purple-300 dark:border-purple-700/50 dark:hover:bg-purple-900/60" title="Hat dökümanları" data-i18n-title="lineDocs">
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+                      <span data-i18n="documents">Dökümanlar</span>
+                    </a>
+                  </div>
+                </div>
+                <div id="kd-dmf" class="text-4xl lg:text-5xl font-bold mb-4">-</div>
+              </div>
+              <div id="dmf-qty-grid" class="grid grid-cols-5 gap-1 sm:gap-2 text-center"></div>
+              <div class="glass-panel rounded-xl p-5 flex flex-col">
+                <div class="flex justify-between items-end mb-4">
+                  <span data-i18n="annualChart" class="text-sm font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Yıllık Hat Doluluk Grafiği (%)</span>
+                </div>
+                <div class="relative w-full h-56 mt-2">
+                  <canvas id="dmfChart"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <div id="no-components-msg" class="hidden bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/50 rounded-xl p-6 text-center text-amber-700 dark:text-amber-400 font-semibold text-base" data-i18n="noCapacityProduct">
+          Kapasite dosyasına alınmamış ürün: SMF, Rulman vb.
+        </div>
+      </div>
+
+      <div id="compDetailView" class="hidden flex flex-col gap-4">
+        <div class="bg-valeo-cardInner/70 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl p-5 border border-valeo-cardBorder dark:border-slate-700 shadow-sm">
+          <h3 data-i18n="searchResultsTitle" class="text-sm font-bold text-slate-500 uppercase tracking-wider mb-2">Arama Sonuçları</h3>
+          <p id="cd-compname" class="text-3xl font-black text-slate-800 dark:text-white">-</p>
+          <p class="text-base font-medium text-valeo-blue dark:text-valeo-green mt-1">-</p>
+        </div>
+        <div id="cd-line-summary" class="hidden flex flex-col gap-3"></div>
+        <div id="cd-customer-summary" class="hidden flex flex-col gap-3"></div>
+        <div id="cd-results" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"></div>
+      </div>
+
+    </main>
+  </div>
+
+  <script>
+    Chart.register(ChartDataLabels);
+
+    let globalData = [];
+    let lineStats = {};
+    let dmfLineData = {};
+    let ppcaChartInstance = null;
+
+    // Hat → Drive klasör linki haritası (anahtar: normalize edilmiş hat adı)
+    function lineKey(name) { return String(name).replace(/[^A-Z0-9]/gi,'').toUpperCase(); }
+    const LINE_DOCS = {
+      [lineKey('TB01 Etcoma')]:       'https://drive.google.com/drive/folders/1GjB6XQ5MiYgUaxnjBTqpIFL1ctN0KfKP',
+      [lineKey('TB02 Manuel 1')]:     'https://drive.google.com/drive/folders/1aNO0mmYLL8voPuKqbTtyTmS53Tv9RPtC',
+      [lineKey('TB03 DT')]:           'https://drive.google.com/drive/folders/178OyK8ZLELaezz5B140KfuB_C6BQMcMO',
+      [lineKey('TB04 DBV')]:          'https://drive.google.com/drive/folders/1TpXkzhwjW-Z4S4Wc7luZq4Dzny3Hb7n0',
+      [lineKey('TB05 Manuel 2')]:     'https://drive.google.com/drive/folders/108euIrbpZy9-PPq2y5daU-oMRpbE-nJP',
+      [lineKey('TB06 Baron')]:        'https://drive.google.com/drive/folders/1SpdeeyQ-pAWb7gN_XOaxmI1SmiJhDDp3',
+      [lineKey('TB10 Sat')]:          'https://drive.google.com/drive/folders/1CR7hMS8cU19LCbQ9MC0v8htkyI9eiHqQ',
+      [lineKey('TB11 Tox')]:          'https://drive.google.com/drive/folders/1CgiK5YD8G3G_MUzsbIGRNsuWoWQMahqf',
+      [lineKey('Proto Line')]:        'https://drive.google.com/drive/folders/1CgiK5YD8G3G_MUzsbIGRNsuWoWQMahqf',
+      [lineKey('MF8 Line')]:          'https://drive.google.com/drive/folders/1ukk1gTeNvv-FSGehCeU6r2cWXcwyHVYu',
+      [lineKey('TB14 Flexy')]:        'https://drive.google.com/drive/folders/1F7OAcKkJNxl_NN7q340zBI-EOq6K8Adt',
+      [lineKey('TD08 NX')]:           'https://drive.google.com/drive/folders/1rpoZgkUYXeptFHLn0dw588Eq_pOWaG17',
+      [lineKey('TD03 X-XB')]:         'https://drive.google.com/drive/folders/1YxkhzCkcoYMwRaZa85UcqJ4y0yx7ppx2',
+      [lineKey('TD04 new Z')]:        'https://drive.google.com/drive/folders/1WACQpuYYOi7cOIxIDqXxc3OG8GgQnLm5',
+      [lineKey('TD10 Rigid')]:        'https://drive.google.com/drive/folders/1Q4r51eqbt6kjQ8rVJsNM4NYNIaWHDZ-M',
+      [lineKey('TD05 SX')]:           'https://drive.google.com/drive/folders/14mBIFR2crx8VqRgefuNiFdtYt6DPkwM3',
+      [lineKey('TD02 KRB')]:          'https://drive.google.com/drive/folders/1rMkqNhCM8PCP9YZLj-sgiP4Kcc_X0Yy7',
+      [lineKey('TD11 Gefit')]:        'https://drive.google.com/drive/folders/1YlRLrAkHxMOikIvrJEdAuQ3KaclBShN9',
+      [lineKey('TD14 Oto Rigid 1')]:  'https://drive.google.com/drive/folders/1nNwuLWGeoCPPLDUO4kvzNjMdk3qTyUOF',
+      [lineKey('TD13 YENİ RUSSIA')]:  'https://drive.google.com/drive/folders/1p0zr5ZeCcKMM9iAHpGmxIK1id1uRAcsJ',
+      [lineKey('TD13 YENI RUSSIA')]:  'https://drive.google.com/drive/folders/1p0zr5ZeCcKMM9iAHpGmxIK1id1uRAcsJ',
+      [lineKey('TD12 HD X-XB')]:      'https://drive.google.com/drive/folders/1QGb2ARqdOiMBqvF8KM9iOiicUwgxEZv6',
+      [lineKey('Manuel Rijit-2')]:    'https://drive.google.com/drive/folders/1ZPYugTEabZmZnZj9OvFT-8Mejpa9HRx8',
+      [lineKey('XB-3')]:              'https://drive.google.com/drive/folders/1-ShTbPlRje1hLeSAkr5sJAUt0M91x6Aq',
+      [lineKey('TD15 Oto Rigid 2')]:  'https://drive.google.com/drive/folders/156YDaGihexP68pwpSurHtq6RGxVxNqqJ',
+      [lineKey('DMF 1')]:             'https://drive.google.com/drive/folders/1sRr2a1jHh61ft51OKzJnOmWkvLHMR5_y',
+      [lineKey('DMF 2')]:             'https://drive.google.com/drive/folders/1-aM0P2rm3FhQ_O1wkKglpQl_xjlbcNjk',
+      [lineKey('DMF 3')]:             'https://drive.google.com/drive/folders/1D6tFPtbuGHIxUIlA3C2GSGopY9gjKbB1',
+      [lineKey('DMF 4')]:             'https://drive.google.com/drive/folders/1ShOiy0FS7xl07aLWYiBdGDXO7oQfDxSq',
+    };
+    let diskChartInstance = null;
+    let dmfChartInstance = null;
+    let navHistory = [];
+    let lang = localStorage.getItem('dashLang') || 'tr';
+
+    let allKits = [];
+    let recentSearches = JSON.parse(localStorage.getItem('dashRecentSearches') || '[]');
+
+    function saveRecentSearch(term) {
+      recentSearches = [term, ...recentSearches.filter(s => s !== term)].slice(0, 5);
+      localStorage.setItem('dashRecentSearches', JSON.stringify(recentSearches));
+    }
+
+    function renderRecentSearchDropdown() {
+      const el = document.getElementById('recentSearchDropdown');
+      if (!el) return;
+      if (recentSearches.length === 0) { el.classList.add('hidden'); return; }
+      el.innerHTML = recentSearches.map(s =>
+        `<div class="recent-item px-3 py-2 text-sm cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 text-slate-700 dark:text-slate-300" data-term="${escapeHtml(s)}">
+          <svg class="w-3.5 h-3.5 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <span>${escapeHtml(s.toUpperCase())}</span>
+        </div>`
+      ).join('') + `<div id="clearRecentBtn" class="px-3 py-1.5 text-[11px] text-slate-400 border-t border-slate-100 dark:border-slate-700 text-right cursor-pointer hover:text-slate-600 dark:hover:text-slate-300">${t('recentSearchClear')}</div>`;
+      el.classList.remove('hidden');
+      el.querySelectorAll('.recent-item').forEach(item => {
+        item.addEventListener('click', () => {
+          const term = item.dataset.term;
+          els.compSearch.value = term;
+          el.classList.add('hidden');
+          els.kitSelect.value = '';
+          renderCompSearchResults(term);
+          closeSidebarOnMobile();
+        });
+      });
+      const clearBtn = document.getElementById('clearRecentBtn');
+      if (clearBtn) clearBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        recentSearches = [];
+        localStorage.removeItem('dashRecentSearches');
+        el.classList.add('hidden');
+      });
+    }
+
+    const PPCA_GROUPS = {
+      PASSENGER_CAR: {
+        tr: 'Passenger Car', en: 'Passenger Car',
+        badge: 'bg-[#dcfce7] dark:bg-green-900/40 text-green-700 dark:text-green-300 border border-[#bbf7d0] dark:border-green-800/50',
+        lines: new Set(['TB01ETCOMA','TB02MANUEL1','TB03DT','TB04DBV','TB05MANUEL2','TB06BARON','TB10SAT','TB11TOX','PROTOLINE','MF8LINE','TB14FLEXY'])
+      },
+      HEAVY_DUTY: {
+        tr: 'Heavy Duty', en: 'Heavy Duty',
+        badge: 'bg-[#bae6fd] dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border border-[#7dd3fc] dark:border-blue-800/50',
+        lines: new Set(['AB01DL','AB02MF','AB03TRUCK','AB04N.TRUCK','TL01T.LIMITOR'])
+      }
+    };
+    let ppcaGroupFilter = null;
+
+    const DISK_GROUPS = {
+      PASSENGER_CAR: {
+        tr: 'Passenger Car', en: 'Passenger Car',
+        badge: 'bg-[#dcfce7] dark:bg-green-900/40 text-green-700 dark:text-green-300 border border-[#bbf7d0] dark:border-green-800/50',
+        lines: new Set(['TD08NX','TD03X-XB','TD04NEWZ','TD10RIGID','TD05SX','TD11GEFIT',
+                        'TD02KRB','TD14OTORIGID1','TD13YENİRUSSIA','TD13YENIRUSSIA',
+                        'TD12HDX-XB','XB-3','TD15OTORIGID2',
+                        'MANUELRIJIT-2(YENİ)','MANUELRIJIT-2(YENI)','AVXBTD12'])
+      },
+      HEAVY_DUTY: {
+        tr: 'Heavy Duty', en: 'Heavy Duty',
+        badge: 'bg-[#bae6fd] dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border border-[#7dd3fc] dark:border-blue-800/50',
+        lines: new Set(['AD05ORG','AD12L','AD06_SERAMETALIK','AD03MT','AD04Y-YB'])
+      }
+    };
+    let diskGroupFilter = null;
+
+    const i18n = {
+      tr: {
+        explore:              'Veri Keşfi',
+        kitSelectLabel:       'Kit Referansı Seç',
+        kitSelectLoading:     'Yükleniyor...',
+        kitSelectPlaceholder: 'Kit Seçiniz...',
+        home:                 'Ana Sayfa',
+        breadcrumbSearch:     (term) => `Arama: ${term.toUpperCase()}`,
+        breadcrumbKit:        (kit)  => `Kit: ${kit}`,
+        or:                   'VEYA',
+        themeToggleLabel:     'Karanlık / Aydınlık mod',
+        searchLabel:          'Arama (Kit, Komponent, Hat)',
+        searchPlaceholder:    'Örn: 58, VD veya HD',
+        reset:                'Sıfırla',
+        back:                 'Geri',
+        loadingText:          'Veriler eşitleniyor...',
+        emptyText:            'Arama yapmak için soldaki menüyü kullanın.',
+        selectedKit:          'Seçili Kit Referansı',
+        annualVolume:         'Bu Kit İçin Yıllık Üretim Beklentisi (Adet)',
+        annualChart:          'Yıllık Hat Doluluk Grafiği (%)',
+        annualCapacity:       'Yıllık Kapasite:',
+        searchResultsTitle:   'Arama Sonuçları',
+        kitRef:               'Kit Referansı',
+        noResults:            'Eşleşen kayıt veya üretim hattı bulunamadı.',
+        resultsForPrefix:     '',
+        resultsForSuffix:     ' için sonuçlar',
+        matchCount:           (n) => `${n} adet eşleşme bulundu.`,
+        tooltipLabel:         (val) => 'Doluluk: %' + val.toFixed(1),
+        datalabelFmt:         (val) => val > 0 ? '%' + val.toFixed(1) : '%0',
+        purchasedComp:        'Satınalma Komponent',
+        lineProdSummary:      'Hat Bazında Yıllık Üretim Beklentisi (Adet)',
+        errLoad:              'Veri yüklenirken hata oluştu: ',
+        errServer:            'Sunucu hatası: ',
+        ppcaGroupCount:       '2 grup gösteriliyor',
+        clickToView:          'Hatları Görüntüle →',
+        quickAccess:          'Hızlı Erişim',
+        startByClicking:      'Ürüne tıklayarak başlayın',
+        imageLoadFail:        'Görsel yüklenemedi',
+        orSearchLeftMenu:     'veya soldaki menüden arama yapın',
+        searchAllCustomerRefs:    'Bu müşterinin tüm referanslarını ara',
+        searchCustomerDetailRefs: 'Bu müşteri detayının referanslarını ara',
+        searchAllKitsOnLine:  'Bu hattaki tüm kitleri ara',
+        viewLineLayout:       'Hat layoutunu görüntüle',
+        layout:               'Layout',
+        lineDocs:             'Hat dökümanları',
+        documents:            'Dökümanlar',
+        searchFamilyGroup:    'Bu aile grubunu ara',
+        searchDmfLines:       'DMF hatlarını ara',
+        noCapacityProduct:    'Kapasite dosyasına alınmamış ürün: SMF, Rulman vb.',
+        recentSearchClear:    'Geçmişi temizle',
+        ppcaFamilyGroupLabel: (g) => `PPCA — Aile Grubu: ${g}`,
+        viewLineRefs:         'Bu hattaki referansları görüntüle',
+        references:           'Referanslar',
+        customerProdSummary:  'Müşteri Üretim Özeti',
+        viewAllCustomerRefs:  'Bu müşterinin tüm referanslarını görüntüle',
+        customer:             'Müşteri',
+        familyGroupLabel:     (g) => `Aile Grubu: ${g}`,
+        feedback:             'Geri Bildirim',
+        fbType:               'Tür',
+        fbBug:                'Bug',
+        fbImprovement:        'İyileştirme',
+        fbTypeRequired:       'Lütfen bir tür seçin.',
+        fbPriority:           'Öncelik',
+        fbLow:                'Düşük',
+        fbMedium:             'Orta',
+        fbUrgent:             'Acil',
+        fbPriorityRequired:   'Lütfen bir öncelik seçin.',
+        fbMessage:            'Mesaj',
+        fbMessagePlaceholder: 'Geri bildiriminizi yazın...',
+        fbMessageRequired:    'Lütfen mesajınızı girin.',
+        fbImage:              'Görsel',
+        fbImageOptionalHint:  '(opsiyonel — PNG, JPG, WEBP, maks. 5MB)',
+        fbImageDropHint:      'Ekran görüntüsü veya görsel eklemek için tıklayın',
+        fbImagePreviewAlt:    'Görsel önizleme',
+        fbImageRemoveLabel:   'Görseli kaldır',
+        fbImageInvalidMsg:    'Lütfen PNG, JPG veya WEBP formatında, 5MB altında bir görsel seçin.',
+        fbCancel:             'İptal',
+        fbSubmitLabel:        'Gönder',
+        fbSubmitting:         'Gönderiliyor...',
+        fbThanks:             'Teşekkürler!',
+        fbSavedMsg:           'Geri bildiriminiz kaydedildi.',
+        fbErrorPrefix:        'Hata: ',
+        zoomOut:              'Küçült',
+        zoomIn:               'Büyüt',
+        lineLayoutAlt:        'Hat Layout',
+        layoutLoadingText:    'Layout yükleniyor...',
+        fetchingImageText:    'Görsel çekiliyor...',
+        layoutZoomHintText:   'Tekerlek ile büyüt/küçült · Sürükle ile kaydır · Çift tıkla sıfırla',
+        lineLayoutTitle:      (name) => `${name} — Hat Layout`,
+        driveAccessError:     'Drive erişim hatası.',
+        driveFolderEmpty:     'Drive klasörü boş veya erişilemiyor.',
+        folderIdLabel:        'Klasör ID:',
+        layoutImageNotFoundFor: (name) => `"${name}" için layout görseli bulunamadı.`,
+        searchedKeyLabel:     'Aranan anahtar:',
+        driveLinesLabel:      "Drive'daki hatlar:",
+        imageFetchError:      'Görsel çekme hatası.',
+        locale:               'tr-TR',
+      },
+      en: {
+        explore:              'Data Explorer',
+        kitSelectLabel:       'Select Kit Reference',
+        kitSelectLoading:     'Loading...',
+        kitSelectPlaceholder: 'Select a Kit...',
+        home:                 'Home',
+        breadcrumbSearch:     (term) => `Search: ${term.toUpperCase()}`,
+        breadcrumbKit:        (kit)  => `Kit: ${kit}`,
+        or:                   'OR',
+        themeToggleLabel:     'Dark / Light mode',
+        searchLabel:          'Search (Kit, Component, Line)',
+        searchPlaceholder:    'e.g. 58, VD or HD',
+        reset:                'Reset',
+        back:                 'Back',
+        loadingText:          'Syncing data...',
+        emptyText:            'Use the left menu to search.',
+        selectedKit:          'Selected Kit Reference',
+        annualVolume:         'Annual Production Forecast for This Kit (Units)',
+        annualChart:          'Annual Line Occupancy Chart (%)',
+        annualCapacity:       'Annual Capacity:',
+        searchResultsTitle:   'Search Results',
+        kitRef:               'Kit Reference',
+        noResults:            'No matching records or production lines found.',
+        resultsForPrefix:     'Results for ',
+        resultsForSuffix:     '',
+        matchCount:           (n) => `${n} match${n !== 1 ? 'es' : ''} found.`,
+        tooltipLabel:         (val) => 'Occupancy: ' + val.toFixed(1) + '%',
+        datalabelFmt:         (val) => val > 0 ? val.toFixed(1) + '%' : '0%',
+        purchasedComp:        'Purchased Component',
+        lineProdSummary:      'Annual Production Forecast by Line (Units)',
+        errLoad:              'Error loading data: ',
+        errServer:            'Server error: ',
+        ppcaGroupCount:       '2 groups shown',
+        clickToView:          'View Lines →',
+        quickAccess:          'Quick Access',
+        startByClicking:      'Start by clicking a product',
+        imageLoadFail:        'Image failed to load',
+        orSearchLeftMenu:     'or search using the menu on the left',
+        searchAllCustomerRefs:    'Search all references for this customer',
+        searchCustomerDetailRefs: 'Search references for this customer detail',
+        searchAllKitsOnLine:  'Search all kits on this line',
+        viewLineLayout:       'View line layout',
+        layout:               'Layout',
+        lineDocs:             'Line documents',
+        documents:            'Documents',
+        searchFamilyGroup:    'Search this family group',
+        searchDmfLines:       'Search DMF lines',
+        noCapacityProduct:    'Product not tracked in the capacity file: SMF, bearing, etc.',
+        recentSearchClear:    'Clear history',
+        ppcaFamilyGroupLabel: (g) => `PPCA — Family Group: ${g}`,
+        viewLineRefs:         'View references on this line',
+        references:           'References',
+        customerProdSummary:  'Customer Production Summary',
+        viewAllCustomerRefs:  'View all references for this customer',
+        customer:             'Customer',
+        familyGroupLabel:     (g) => `Family Group: ${g}`,
+        feedback:             'Feedback',
+        fbType:               'Type',
+        fbBug:                'Bug',
+        fbImprovement:        'Improvement',
+        fbTypeRequired:       'Please select a type.',
+        fbPriority:           'Priority',
+        fbLow:                'Low',
+        fbMedium:             'Medium',
+        fbUrgent:             'Urgent',
+        fbPriorityRequired:   'Please select a priority.',
+        fbMessage:            'Message',
+        fbMessagePlaceholder: 'Write your feedback...',
+        fbMessageRequired:    'Please enter your message.',
+        fbImage:              'Image',
+        fbImageOptionalHint:  '(optional — PNG, JPG, WEBP, max. 5MB)',
+        fbImageDropHint:      'Click to add a screenshot or image',
+        fbImagePreviewAlt:    'Image preview',
+        fbImageRemoveLabel:   'Remove image',
+        fbImageInvalidMsg:    'Please select a PNG, JPG or WEBP image under 5MB.',
+        fbCancel:             'Cancel',
+        fbSubmitLabel:        'Submit',
+        fbSubmitting:         'Submitting...',
+        fbThanks:             'Thank you!',
+        fbSavedMsg:           'Your feedback has been recorded.',
+        fbErrorPrefix:        'Error: ',
+        zoomOut:              'Zoom out',
+        zoomIn:               'Zoom in',
+        lineLayoutAlt:        'Line Layout',
+        layoutLoadingText:    'Loading layout...',
+        fetchingImageText:    'Fetching image...',
+        layoutZoomHintText:   'Scroll to zoom · Drag to pan · Double-click to reset',
+        lineLayoutTitle:      (name) => `${name} — Line Layout`,
+        driveAccessError:     'Drive access error.',
+        driveFolderEmpty:     'The Drive folder is empty or inaccessible.',
+        folderIdLabel:        'Folder ID:',
+        layoutImageNotFoundFor: (name) => `No layout image found for "${name}".`,
+        searchedKeyLabel:     'Searched key:',
+        driveLinesLabel:      'Lines available in Drive:',
+        imageFetchError:      'Error fetching image.',
+        locale:               'en-US',
+      }
+    };
+
+    function t(key) { return i18n[lang][key]; }
+    function escapeHtml(str) {
+      return String(str).replace(/[&<>"']/g, ch => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[ch]));
+    }
+    const fmt = (num) => Math.round(Number(num) || 0).toLocaleString(t('locale'));
+
+    function closeSidebarOnMobile() {
+      if (window.innerWidth < 1024) {
+        document.getElementById('searchPanel').classList.add('hidden');
+        document.getElementById('sidebarChevron').style.transform = '';
+      }
+    }
+
+    const els = {
+      themeBtn:       document.getElementById('themeToggle'),
+      langToggle:     document.getElementById('langToggle'),
+      langLabel:      document.getElementById('langLabel'),
+      kitSelect:      document.getElementById('kitSelect'),
+      compSearch:     document.getElementById('compSearch'),
+      resetBtn:       document.getElementById('resetBtn'),
+      breadcrumb:     document.getElementById('breadcrumb'),
+      backBtnWrapper: document.getElementById('backBtnWrapper'),
+      backBtn:        document.getElementById('backBtn'),
+      loading:        document.getElementById('loadingState'),
+      empty:          document.getElementById('emptyState'),
+      kitView:        document.getElementById('kitDetailView'),
+      compView:       document.getElementById('compDetailView'),
+    };
+
+    function applyLang() {
+      document.documentElement.lang = lang;
+      els.langLabel.textContent = lang === 'tr' ? 'EN' : 'TR';
+
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const val = i18n[lang][el.dataset.i18n];
+        if (typeof val === 'string') el.textContent = val;
+      });
+
+      document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        const val = i18n[lang][el.dataset.i18nPlaceholder];
+        if (typeof val === 'string') el.placeholder = val;
+      });
+
+      document.querySelectorAll('[data-i18n-aria]').forEach(el => {
+        const val = i18n[lang][el.dataset.i18nAria];
+        if (typeof val === 'string') el.setAttribute('aria-label', val);
+      });
+
+      document.querySelectorAll('[data-i18n-title]').forEach(el => {
+        const val = i18n[lang][el.dataset.i18nTitle];
+        if (typeof val === 'string') el.setAttribute('title', val);
+      });
+
+      document.querySelectorAll('[data-i18n-alt]').forEach(el => {
+        const val = i18n[lang][el.dataset.i18nAlt];
+        if (typeof val === 'string') el.setAttribute('alt', val);
+      });
+
+      const firstOpt = els.kitSelect.options[0];
+      if (firstOpt && firstOpt.value === '') {
+        firstOpt.text = globalData.length === 0 ? t('kitSelectLoading') : t('kitSelectPlaceholder');
+      }
+
+      if (!els.kitView.classList.contains('hidden') && els.kitSelect.value) {
+        renderDetails(els.kitSelect.value, false);
+      } else if (!els.compView.classList.contains('hidden') && els.compSearch.value.trim().length >= 2) {
+        renderCompSearchResults(els.compSearch.value.trim().toLowerCase(), false);
+      } else {
+        renderBreadcrumb();
+      }
+    }
+
+    applyLang();
+
+    (function () {
+      const grid    = document.getElementById('dashboardGrid');
+      const sidebar = document.getElementById('sidebarArea');
+      const open  = () => grid.classList.add('sidebar-open');
+      const close = () => grid.classList.remove('sidebar-open');
+      sidebar.addEventListener('mouseenter', open);
+      sidebar.addEventListener('mouseleave', close);
+      sidebar.addEventListener('focusin', open);
+      sidebar.addEventListener('focusout', (e) => {
+        if (!sidebar.contains(e.relatedTarget)) close();
+      });
+    })();
+
+    document.getElementById('sidebarToggle').addEventListener('click', () => {
+      const panel   = document.getElementById('searchPanel');
+      const chevron = document.getElementById('sidebarChevron');
+      const isOpen  = !panel.classList.contains('hidden');
+      panel.classList.toggle('hidden', isOpen);
+      chevron.style.transform = isOpen ? '' : 'rotate(180deg)';
+    });
+
+    els.themeBtn.addEventListener('click', () => {
+      document.documentElement.classList.toggle('dark');
+      if (!els.kitView.classList.contains('hidden') && els.kitSelect.value) {
+        renderDetails(els.kitSelect.value, false);
+      }
+    });
+
+    els.langToggle.addEventListener('click', () => {
+      lang = lang === 'tr' ? 'en' : 'tr';
+      localStorage.setItem('dashLang', lang);
+      applyLang();
+    });
+
+    window.onload = () => {
+      google.script.run
+        .withSuccessHandler(data => {
+          els.loading.classList.add('hidden');
+          if (data.error) {
+            els.empty.classList.remove('hidden');
+            alert(t('errLoad') + data.error);
+            return;
+          }
+          globalData = data.globalData;
+          lineStats = data.lineStats;
+          dmfLineData = data.dmfLineData || {};
+
+          const kits = [...new Set(globalData.map(d => d.kit))].sort();
+          allKits = kits;
+          els.kitSelect.innerHTML = `<option value="">${t('kitSelectPlaceholder')}</option>`;
+          kits.forEach(k => els.kitSelect.add(new Option(k, k)));
+
+          els.empty.classList.remove('hidden');
+        })
+        .withFailureHandler(err => {
+          els.loading.classList.add('hidden');
+          els.empty.classList.remove('hidden');
+          alert(t('errServer') + (err.message || err));
+        })
+        .getSpreadsheetData();
+
+      google.script.run
+        .withSuccessHandler(result => {
+          const img    = document.getElementById('edrive-img');
+          const loader = document.getElementById('edrive-loader');
+          if (loader) loader.style.display = 'none';
+          if (img && result && result.ok) {
+            img.src = result.dataUrl;
+            img.classList.remove('hidden');
+          }
+        })
+        .withFailureHandler(() => {
+          const loader = document.getElementById('edrive-loader');
+          if (loader) loader.style.display = 'none';
+        })
+        .getEDriveImage();
+    };
+
+    els.kitSelect.addEventListener('change', (e) => {
+      if (e.target.value) { els.compSearch.value = ''; renderDetails(e.target.value); closeSidebarOnMobile(); }
+      else resetView();
+    });
+
+    els.compSearch.addEventListener('input', (e) => {
+      ppcaGroupFilter = null;
+      diskGroupFilter = null;
+      const searchTerm = e.target.value.trim().toLowerCase();
+      if (searchTerm.length >= 2) {
+        document.getElementById('recentSearchDropdown').classList.add('hidden');
+        els.kitSelect.value = '';
+        renderCompSearchResults(searchTerm);
+      } else if (searchTerm.length === 0 || searchTerm.length === 1) resetView();
+    });
+
+    els.compSearch.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        const term = e.target.value.trim().toLowerCase();
+        if (term.length >= 2) saveRecentSearch(term);
+      }
+    });
+
+    els.compSearch.addEventListener('blur', () => {
+      const term = els.compSearch.value.trim().toLowerCase();
+      if (term.length >= 2) saveRecentSearch(term);
+    });
+
+    els.compSearch.addEventListener('focus', () => {
+      if (els.compSearch.value.trim().length < 2) renderRecentSearchDropdown();
+    });
+
+    document.addEventListener('click', e => {
+      const recentEl = document.getElementById('recentSearchDropdown');
+      if (recentEl && !recentEl.contains(e.target) && e.target !== els.compSearch) {
+        recentEl.classList.add('hidden');
+      }
+    });
+
+
+    document.addEventListener('keydown', e => {
+      const inInput = ['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName);
+      if (e.key === '/' && !inInput) {
+        e.preventDefault();
+        els.compSearch.focus();
+        if (window.innerWidth < 1024) {
+          document.getElementById('searchPanel').classList.remove('hidden');
+          document.getElementById('sidebarChevron').style.transform = 'rotate(180deg)';
+        }
+      }
+      if (e.key === 'Escape') {
+        const recentEl = document.getElementById('recentSearchDropdown');
+        if (recentEl && !recentEl.classList.contains('hidden')) { recentEl.classList.add('hidden'); return; }
+        if (document.activeElement === els.compSearch) {
+          document.activeElement.blur();
+        } else {
+          els.kitSelect.value = '';
+          els.compSearch.value = '';
+          resetView();
+        }
+      }
+    });
+
+    els.resetBtn.addEventListener('click', () => { els.kitSelect.value = ''; els.compSearch.value = ''; resetView(); closeSidebarOnMobile(); });
+
+    els.backBtn.addEventListener('click', () => {
+      navHistory.pop();
+      const prev = navHistory[navHistory.length - 1];
+      if (!prev) {
+        ppcaGroupFilter = null;
+        diskGroupFilter = null;
+        els.kitSelect.value = '';
+        els.compSearch.value = '';
+        resetView();
+        return;
+      }
+      if (prev.view === 'search') {
+        ppcaGroupFilter = null;
+        diskGroupFilter = null;
+        els.kitSelect.value = '';
+        els.compSearch.value = prev.term;
+        renderCompSearchResults(prev.term, false);
+      }
+    });
+
+    function quickSearch(term) {
+      els.compSearch.value = term;
+      els.kitSelect.value = '';
+      renderCompSearchResults(term.toLowerCase());
+    }
+
+    function navHistoryLabel(entry) {
+      if (entry.view === 'kit')         return t('breadcrumbKit')(entry.kit);
+      if (entry.view === 'search')      return t('breadcrumbSearch')(entry.term);
+      if (entry.view === 'ppca-group')  { const g = PPCA_GROUPS[entry.group]; return g ? (g[lang] || g.tr) : entry.group; }
+      if (entry.view === 'disk-group')  { const g = DISK_GROUPS[entry.group]; return g ? (g[lang] || g.tr) : entry.group; }
+      return '';
+    }
+
+    function goToNavHistoryStep(idx) {
+      const entry = navHistory[idx];
+      navHistory = navHistory.slice(0, idx + 1);
+      ppcaGroupFilter = null;
+      diskGroupFilter = null;
+      if (entry.view === 'kit') {
+        els.compSearch.value = '';
+        els.kitSelect.value  = entry.kit;
+        renderDetails(entry.kit, false);
+      } else if (entry.view === 'search') {
+        els.kitSelect.value  = '';
+        els.compSearch.value = entry.term;
+        renderCompSearchResults(entry.term, false);
+      } else if (entry.view === 'ppca-group') {
+        ppcaGroupFilter = entry.group;
+        els.kitSelect.value  = '';
+        els.compSearch.value = 'ppca';
+        renderCompSearchResults('ppca', false);
+      } else if (entry.view === 'disk-group') {
+        diskGroupFilter = entry.group;
+        els.kitSelect.value  = '';
+        els.compSearch.value = 'disk';
+        renderCompSearchResults('disk', false);
+      }
+    }
+
+    function renderBreadcrumb() {
+      const crumbs = [{ label: t('home') }];
+      navHistory.forEach((entry, idx) => {
+        const label = navHistoryLabel(entry);
+        if (label) crumbs.push({ label, idx });
+      });
+
+      if (crumbs.length <= 1) {
+        els.breadcrumb.classList.add('hidden');
+        els.breadcrumb.innerHTML = '';
+        return;
+      }
+
+      els.breadcrumb.innerHTML = crumbs.map((c, i) => {
+        const isLast = i === crumbs.length - 1;
+        const sep = i > 0
+          ? `<svg class="w-3.5 h-3.5 text-slate-400 dark:text-slate-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>`
+          : '';
+        const cls = isLast
+          ? 'text-slate-800 dark:text-white font-bold cursor-default'
+          : 'text-slate-500 dark:text-slate-400 font-semibold hover:text-valeo-blue dark:hover:text-valeo-green cursor-pointer transition-colors underline-offset-2 hover:underline';
+        return `${sep}<span class="breadcrumb-item ${cls} truncate max-w-[140px] sm:max-w-[240px]" data-step="${i === 0 ? 'home' : c.idx}" ${isLast ? 'aria-current="page"' : 'role="button" tabindex="0"'}>${escapeHtml(c.label)}</span>`;
+      }).join('');
+
+      els.breadcrumb.querySelectorAll('.breadcrumb-item').forEach((el, i) => {
+        if (i === crumbs.length - 1) return;
+        const step = el.dataset.step;
+        const go = () => {
+          if (step === 'home') {
+            els.kitSelect.value = '';
+            els.compSearch.value = '';
+            resetView();
+          } else {
+            goToNavHistoryStep(Number(step));
+          }
+          closeSidebarOnMobile();
+        };
+        el.addEventListener('click', go);
+        el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
+      });
+
+      els.breadcrumb.classList.remove('hidden');
+    }
+
+    function resetView() {
+      ppcaGroupFilter = null;
+      diskGroupFilter = null;
+      navHistory = [];
+      if (allKits.length) {
+        els.kitSelect.innerHTML = `<option value="">${t('kitSelectPlaceholder')}</option>`;
+        allKits.forEach(k => els.kitSelect.add(new Option(k, k)));
+      }
+      els.empty.classList.remove('hidden');
+      els.kitView.classList.add('hidden');
+      els.compView.classList.add('hidden');
+      els.backBtnWrapper.classList.add('hidden');
+      renderBreadcrumb();
+    }
+
+    function renderPPCAGroupOverview(container, allVols) {
+      container.innerHTML = `<h4 class="text-sm font-bold text-slate-500 uppercase tracking-wider">${t('lineProdSummary')}</h4>`;
+      Object.entries(PPCA_GROUPS).forEach(([key, grp]) => {
+        const groupLabel = grp[lang] || grp.tr;
+        const totals = { v26:0, v27:0, v28:0, v29:0, v30:0 };
+        allVols.forEach(lv => {
+          if (grp.lines.has(lv.lineName.replace(/\s+/g, '').toUpperCase())) {
+            totals.v26 += lv.v26; totals.v27 += lv.v27; totals.v28 += lv.v28;
+            totals.v29 += lv.v29; totals.v30 += lv.v30;
+          }
+        });
+        const card = document.createElement('div');
+        card.className = 'bg-valeo-cardInner/70 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl p-5 border border-valeo-cardBorder dark:border-slate-700 shadow-sm cursor-pointer hover:border-valeo-blue hover:shadow-md transition-all';
+        card.innerHTML = `
+          <div class="flex flex-wrap items-center gap-3 mb-4">
+            <span class="px-3 py-1 text-sm rounded-md font-bold ${grp.badge}">PPCA</span>
+            <span class="text-xl font-black text-slate-800 dark:text-white">${groupLabel}</span>
+            <span class="text-xs text-slate-500 font-medium ml-auto">${t('clickToView')}</span>
+          </div>
+          <div class="grid grid-cols-5 gap-1 sm:gap-2 text-center">
+            ${[['2027',totals.v26],['2028',totals.v27],['2029',totals.v28],['2030',totals.v29],['2031',totals.v30]].map(([yr,val]) =>
+              `<div class="stat-pill rounded-lg p-1.5 sm:p-3">
+                <span class="block text-[10px] sm:text-xs text-slate-500 font-bold mb-0.5">${yr}</span>
+                <span class="font-black text-xs sm:text-base text-slate-800 dark:text-slate-200">${fmt(val)}</span>
+              </div>`
+            ).join('')}
+          </div>`;
+        card.onclick = () => {
+          navHistory.push({ view: 'ppca-group', group: key });
+          ppcaGroupFilter = key;
+          renderCompSearchResults('ppca', false);
+        };
+        container.appendChild(card);
+      });
+      container.classList.remove('hidden');
+    }
+
+    function renderDiskGroupOverview(container, allVols) {
+      container.innerHTML = `<h4 class="text-sm font-bold text-slate-500 uppercase tracking-wider">${t('lineProdSummary')}</h4>`;
+      Object.entries(DISK_GROUPS).forEach(([key, grp]) => {
+        const groupLabel = grp[lang] || grp.tr;
+        const totals = { v26:0, v27:0, v28:0, v29:0, v30:0 };
+        allVols.forEach(lv => {
+          if (grp.lines.has(lv.lineName.replace(/\s+/g, '').toUpperCase())) {
+            totals.v26 += lv.v26; totals.v27 += lv.v27; totals.v28 += lv.v28;
+            totals.v29 += lv.v29; totals.v30 += lv.v30;
+          }
+        });
+        const card = document.createElement('div');
+        card.className = 'bg-valeo-cardInner/70 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl p-5 border border-valeo-cardBorder dark:border-slate-700 shadow-sm cursor-pointer hover:border-valeo-blue hover:shadow-md transition-all';
+        card.innerHTML = `
+          <div class="flex flex-wrap items-center gap-3 mb-4">
+            <span class="px-3 py-1 text-sm rounded-md font-bold ${grp.badge}">Disk</span>
+            <span class="text-xl font-black text-slate-800 dark:text-white">${groupLabel}</span>
+            <span class="text-xs text-slate-500 font-medium ml-auto">${t('clickToView')}</span>
+          </div>
+          <div class="grid grid-cols-5 gap-1 sm:gap-2 text-center">
+            ${[['2027',totals.v26],['2028',totals.v27],['2029',totals.v28],['2030',totals.v29],['2031',totals.v30]].map(([yr,val]) =>
+              `<div class="stat-pill rounded-lg p-1.5 sm:p-3">
+                <span class="block text-[10px] sm:text-xs text-slate-500 font-bold mb-0.5">${yr}</span>
+                <span class="font-black text-xs sm:text-base text-slate-800 dark:text-slate-200">${fmt(val)}</span>
+              </div>`
+            ).join('')}
+          </div>`;
+        card.onclick = () => {
+          navHistory.push({ view: 'disk-group', group: key });
+          diskGroupFilter = key;
+          renderCompSearchResults('disk', false);
+        };
+        container.appendChild(card);
+      });
+      container.classList.remove('hidden');
+    }
+
+    function renderCompSearchResults(term, addToHistory = true) {
+      if (addToHistory) {
+        const last = navHistory[navHistory.length - 1];
+        if (last && last.view === 'search') { last.term = term; }
+        else { navHistory.push({ view: 'search', term }); }
+      }
+      const termLower = term.toLowerCase();
+      const uniqueResults = new Map();
+      const lineVolumes = new Map();
+      const customerVolumes = new Map();
+      const isAllPPCA = termLower === 'ppca';
+      const isAllDisk = termLower === 'disk';
+      const isAllDMF  = termLower === 'dmf';
+
+      globalData.forEach(d => {
+        const pLineRaw = String(d.ppcaLine || '').trim();
+        const dLineRaw = String(d.diskLine || '').trim();
+        const pLine = pLineRaw.toLowerCase();
+        const dLine = dLineRaw.toLowerCase();
+
+        if (!isAllPPCA && !isAllDisk && !isAllDMF) {
+          if (pLine.includes(termLower) && d.ppca) {
+            if (!uniqueResults.has('PPCA-' + d.ppca))
+              uniqueResults.set('PPCA-' + d.ppca, { type: 'PPCA', label: `PPCA (${d.ppcaLine})`, value: d.ppca, kit: d.kit });
+          }
+          if (dLine.includes(termLower) && d.disk) {
+            if (!uniqueResults.has('Disk-' + d.disk))
+              uniqueResults.set('Disk-' + d.disk, { type: 'Disk', label: `Disk (${d.diskLine})`, value: d.disk, kit: d.kit });
+          }
+        }
+
+        if (isAllPPCA) {
+          if (pLineRaw) {
+            const key = 'PPCA:' + pLineRaw.replace(/\s+/g, '').toUpperCase();
+            if (!lineVolumes.has(key)) lineVolumes.set(key, { type: 'PPCA', lineName: pLineRaw, v26:0, v27:0, v28:0, v29:0, v30:0 });
+            const lv = lineVolumes.get(key); lv.v26+=d.vol26; lv.v27+=d.vol27; lv.v28+=d.vol28; lv.v29+=d.vol29; lv.v30+=d.vol30;
+          }
+        } else if (isAllDisk) {
+          if (dLineRaw) {
+            const key = 'Disk:' + dLineRaw.replace(/\s+/g, '').toUpperCase();
+            if (!lineVolumes.has(key)) lineVolumes.set(key, { type: 'Disk', lineName: dLineRaw, v26:0, v27:0, v28:0, v29:0, v30:0 });
+            const lv = lineVolumes.get(key); lv.v26+=d.vol26; lv.v27+=d.vol27; lv.v28+=d.vol28; lv.v29+=d.vol29; lv.v30+=d.vol30;
+          }
+        } else if (isAllDMF) {
+          // populated from dmfLineData after forEach
+        } else {
+          if (pLine.includes(termLower) && pLineRaw) {
+            const key = 'PPCA:' + pLineRaw.replace(/\s+/g, '').toUpperCase();
+            if (!lineVolumes.has(key)) lineVolumes.set(key, { type: 'PPCA', lineName: pLineRaw, v26:0, v27:0, v28:0, v29:0, v30:0 });
+            const lv = lineVolumes.get(key); lv.v26+=d.vol26; lv.v27+=d.vol27; lv.v28+=d.vol28; lv.v29+=d.vol29; lv.v30+=d.vol30;
+          }
+          if (dLine.includes(termLower) && dLineRaw) {
+            const key = 'Disk:' + dLineRaw.replace(/\s+/g, '').toUpperCase();
+            if (!lineVolumes.has(key)) lineVolumes.set(key, { type: 'Disk', lineName: dLineRaw, v26:0, v27:0, v28:0, v29:0, v30:0 });
+            const lv = lineVolumes.get(key); lv.v26+=d.vol26; lv.v27+=d.vol27; lv.v28+=d.vol28; lv.v29+=d.vol29; lv.v30+=d.vol30;
+          }
+          const dmfLineRaw = String(d.dmfLine || '').trim();
+          if (dmfLineRaw.toLowerCase().includes(termLower)) {
+            const key = 'DMF:' + dmfLineRaw.replace(/\s+/g, '').toUpperCase();
+            if (!lineVolumes.has(key)) lineVolumes.set(key, { type: 'DMF', lineName: dmfLineRaw, v26:0, v27:0, v28:0, v29:0, v30:0 });
+            const lv = lineVolumes.get(key); lv.v26+=d.vol26; lv.v27+=d.vol27; lv.v28+=d.vol28; lv.v29+=d.vol29; lv.v30+=d.vol30;
+          }
+        }
+
+        if (!isAllPPCA && !isAllDisk && !isAllDMF) {
+          const k    = String(d.kit       || '').toLowerCase();
+          const p    = String(d.ppca      || '').toLowerCase();
+          const disk = String(d.disk      || '').toLowerCase();
+          const cov  = String(d.cover     || '').toLowerCase();
+          const dia  = String(d.diaphragm || '').toLowerCase();
+          const dmf  = String(d.dmf       || '').toLowerCase();
+          const fg   = String(d.familyGroup || '').toLowerCase();
+
+          // Aile grubu araması
+          if (fg && fg.includes(termLower) && d.ppca) {
+            const fgKey = 'FG-' + d.ppca;
+            if (!uniqueResults.has(fgKey))
+              uniqueResults.set(fgKey, { type: 'PPCA', label: t('ppcaFamilyGroupLabel')(d.familyGroup), value: d.ppca, kit: d.kit, familyGroup: d.familyGroup });
+          }
+
+          // Müşteri araması (B→C→D hiyerarşisi)
+          const cust    = String(d.customer       || '').toLowerCase();
+          const custDet = String(d.customerDetail || '').toLowerCase();
+          const custNm  = String(d.customerName   || '').toLowerCase();
+          if ((cust && cust.includes(termLower)) || (custDet && custDet.includes(termLower)) || (custNm && custNm.includes(termLower))) {
+            const ck = String(d.customer || '').replace(/\s+/g, '').toUpperCase();
+            if (ck) {
+              if (!customerVolumes.has(ck))
+                customerVolumes.set(ck, { customer: d.customer, v26:0, v27:0, v28:0, v29:0, v30:0 });
+              const cv = customerVolumes.get(ck);
+              cv.v26 += d.vol26; cv.v27 += d.vol27; cv.v28 += d.vol28; cv.v29 += d.vol29; cv.v30 += d.vol30;
+            }
+            if (!uniqueResults.has('Kit-' + d.kit))
+              uniqueResults.set('Kit-' + d.kit, { type: 'Kit', label: t('kitRef'), value: d.kit, kit: d.kit });
+          }
+
+          if (k.includes(termLower) || p.includes(termLower) || disk.includes(termLower) ||
+              cov.includes(termLower) || dia.includes(termLower) || dmf.includes(termLower)) {
+            if (!uniqueResults.has('Kit-' + d.kit))
+              uniqueResults.set('Kit-' + d.kit, { type: 'Kit', label: t('kitRef'), value: d.kit, kit: d.kit });
+          }
+        }
+      });
+
+      if (isAllDMF) {
+        Object.values(dmfLineData).forEach(ld => {
+          const key = 'DMF:' + ld.name.replace(/\s+/g, '').toUpperCase();
+          lineVolumes.set(key, { type:'DMF', lineName:ld.name, v26:ld.qty26, v27:ld.qty27, v28:ld.qty28, v29:ld.qty29, v30:ld.qty30, occ26:ld.occ26, occ27:ld.occ27, occ28:ld.occ28, occ29:ld.occ29, occ30:ld.occ30 });
+        });
+      }
+
+      const resultsArray = Array.from(uniqueResults.values());
+      const lineVolumesArray = Array.from(lineVolumes.values()).filter(lv => lv.v26 + lv.v27 + lv.v28 + lv.v29 + lv.v30 > 0);
+      let displayVolumes = lineVolumesArray;
+      if (isAllPPCA && ppcaGroupFilter) {
+        const grp = PPCA_GROUPS[ppcaGroupFilter];
+        displayVolumes = lineVolumesArray.filter(lv => grp.lines.has(lv.lineName.replace(/\s+/g, '').toUpperCase()));
+      } else if (isAllDisk && diskGroupFilter) {
+        const grp = DISK_GROUPS[diskGroupFilter];
+        displayVolumes = lineVolumesArray.filter(lv => grp.lines.has(lv.lineName.replace(/\s+/g, '').toUpperCase()));
+      }
+      const compNameEl = document.getElementById('cd-compname');
+      compNameEl.textContent = '';
+      if (isAllPPCA && ppcaGroupFilter) {
+        compNameEl.textContent = `PPCA › ${PPCA_GROUPS[ppcaGroupFilter][lang]}`;
+      } else if (isAllDisk && diskGroupFilter) {
+        compNameEl.textContent = `Disk › ${DISK_GROUPS[diskGroupFilter][lang]}`;
+      } else {
+        if (t('resultsForPrefix')) compNameEl.append(t('resultsForPrefix'));
+        const termBadge = document.createElement('span');
+        termBadge.className = 'inline-block px-2.5 py-0.5 mx-0.5 rounded-lg bg-valeo-green/10 text-valeo-green dark:bg-valeo-green/15 dark:text-valeo-green align-middle';
+        termBadge.textContent = term.toUpperCase();
+        compNameEl.append(termBadge);
+        if (t('resultsForSuffix')) compNameEl.append(t('resultsForSuffix'));
+      }
+      document.getElementById('cd-compname').nextElementSibling.textContent =
+        ((isAllPPCA && !ppcaGroupFilter) || (isAllDisk && !diskGroupFilter))
+          ? t('ppcaGroupCount')
+          : t('matchCount')(resultsArray.length + displayVolumes.length);
+
+      const lineSummaryEl = document.getElementById('cd-line-summary');
+      if (isAllPPCA && !ppcaGroupFilter) {
+        renderPPCAGroupOverview(lineSummaryEl, lineVolumesArray);
+      } else if (isAllDisk && !diskGroupFilter) {
+        renderDiskGroupOverview(lineSummaryEl, lineVolumesArray);
+      } else if (displayVolumes.length > 0) {
+        lineSummaryEl.innerHTML = `<h4 class="text-sm font-bold text-slate-500 uppercase tracking-wider">${t('lineProdSummary')}</h4>`;
+        displayVolumes.forEach(lv => {
+          const badgeClass = lv.type === 'PPCA'
+            ? 'bg-[#dcfce7] dark:bg-green-900/40 text-slate-700 dark:text-green-300 border border-[#bbf7d0] dark:border-green-800/50'
+            : lv.type === 'Disk'
+            ? 'bg-[#bae6fd] dark:bg-blue-900/40 text-slate-700 dark:text-blue-300 border border-[#7dd3fc] dark:border-blue-800/50'
+            : 'bg-purple-200/60 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 border border-purple-300/50 dark:border-purple-700/50';
+          const normalizedKey = lv.lineName.replace(/\s+/g, '').toUpperCase();
+          const capacity = (lineStats[normalizedKey] || {}).annualCapacity || 0;
+          const card = document.createElement('div');
+          card.className = 'bg-valeo-cardInner/70 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl p-5 border border-valeo-cardBorder dark:border-slate-700 shadow-sm cursor-pointer hover:border-valeo-blue/60 hover:shadow-md transition-all';
+          card.title = t('viewLineRefs');
+          card.onclick = (e) => {
+            if (e.target.closest('a')) return;
+            els.compSearch.value = lv.lineName;
+            els.kitSelect.value = '';
+            renderCompSearchResults(lv.lineName.toLowerCase());
+            closeSidebarOnMobile();
+          };
+          const lvDocsUrl = LINE_DOCS[lineKey(lv.lineName)];
+          card.innerHTML = `
+            <div class="flex flex-wrap items-center gap-3 mb-4">
+              <span class="px-3 py-1 text-sm rounded-md font-bold ${badgeClass}">${lv.type}</span>
+              <span class="text-xl font-black text-slate-800 dark:text-white">${lv.lineName}</span>
+              <span class="text-xs text-slate-400 font-medium flex items-center gap-1"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>${t('references')}</span>
+              ${capacity > 0 ? `<span class="text-xs text-slate-500 font-medium">${t('annualCapacity')} ${fmt(capacity)}</span>` : ''}
+              ${lvDocsUrl ? `<a href="${lvDocsUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="ml-auto flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md font-bold bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:bg-blue-50 dark:hover:bg-slate-600 hover:text-blue-600 dark:hover:text-blue-300 hover:border-blue-300 transition-all"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>${t('documents')}</a>` : ''}
+            </div>
+            <div class="grid grid-cols-5 gap-1 sm:gap-2 text-center">
+              ${[['2027',lv.v26,0],['2028',lv.v27,1],['2029',lv.v28,2],['2030',lv.v29,3],['2031',lv.v30,4]].map(([yr,val,idx]) => {
+                const pct = lv.type === 'DMF' && lv.occ26 !== undefined ? [lv.occ26,lv.occ27,lv.occ28,lv.occ29,lv.occ30][idx] : capacity > 0 ? (val / capacity) * 100 : -1;
+                const [bg, border, text] = pct >= 115
+                  ? ['bg-red-50 dark:bg-red-900/30',    'border-red-300 dark:border-red-700',    'text-red-600 dark:text-red-400']
+                  : pct >= 105
+                  ? ['bg-orange-50 dark:bg-orange-900/30', 'border-orange-300 dark:border-orange-700', 'text-orange-600 dark:text-orange-400']
+                  : pct >= 98
+                  ? ['bg-yellow-50 dark:bg-yellow-900/30', 'border-yellow-300 dark:border-yellow-700', 'text-yellow-600 dark:text-yellow-400']
+                  : pct >= 0
+                  ? ['bg-green-50 dark:bg-green-900/30',  'border-green-300 dark:border-green-700',  'text-green-600 dark:text-green-400']
+                  : ['bg-white/60 dark:bg-slate-900/50',  'border-slate-200 dark:border-slate-700',  'text-slate-800 dark:text-slate-200'];
+                const barColor = pct >= 115 ? 'bg-red-500' : pct >= 105 ? 'bg-orange-500' : pct >= 98 ? 'bg-yellow-500' : 'bg-green-500';
+                const pctBadge = pct >= 0 ? `<span class="block text-[10px] sm:text-xs font-bold mt-0.5 ${text}">%${pct.toFixed(0)}</span><div class="mt-1 h-1 rounded-full bg-slate-200/70 dark:bg-slate-600/50"><div class="${barColor} h-1 rounded-full" style="width:${Math.min(pct,100).toFixed(0)}%"></div></div>` : '';
+                return `<div class="${bg} rounded-lg p-1.5 sm:p-3 border ${border} shadow-sm"><span class="block text-[10px] sm:text-xs text-slate-500 font-bold mb-0.5">${yr}</span><span class="font-black text-xs sm:text-base ${text}">${fmt(val)}</span>${pctBadge}</div>`;
+              }).join('')}
+            </div>`;
+          lineSummaryEl.appendChild(card);
+        });
+        lineSummaryEl.classList.remove('hidden');
+      } else {
+        lineSummaryEl.innerHTML = '';
+        lineSummaryEl.classList.add('hidden');
+      }
+
+      // ─── Müşteri Hacim Özeti ───────────────────────────────────────────────────
+      const custSummaryEl = document.getElementById('cd-customer-summary');
+      custSummaryEl.innerHTML = '';
+      const custVolArr = Array.from(customerVolumes.values()).filter(cv => cv.v26+cv.v27+cv.v28+cv.v29+cv.v30 > 0);
+      if (custVolArr.length > 0) {
+        custSummaryEl.innerHTML = `<h4 class="text-sm font-bold text-slate-500 uppercase tracking-wider">${t('customerProdSummary')}</h4>`;
+        custVolArr.forEach(cv => {
+          const card = document.createElement('div');
+          card.className = 'bg-valeo-cardInner/70 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl p-5 border border-valeo-cardBorder dark:border-slate-700 shadow-sm cursor-pointer hover:border-orange-400/60 hover:shadow-md transition-all';
+          card.title = t('viewAllCustomerRefs');
+          card.onclick = () => { els.compSearch.value = cv.customer; renderCompSearchResults(cv.customer.toLowerCase()); };
+          card.innerHTML = `
+            <div class="flex flex-wrap items-center gap-3 mb-4">
+              <span class="px-3 py-1 text-sm rounded-full font-bold bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 border border-orange-200 dark:border-orange-800">${t('customer')}</span>
+              <span class="text-xl font-black text-slate-800 dark:text-white">${cv.customer}</span>
+            </div>
+            <div class="grid grid-cols-5 gap-1 sm:gap-2 text-center">
+              ${[['2027',cv.v26],['2028',cv.v27],['2029',cv.v28],['2030',cv.v29],['2031',cv.v30]].map(([yr,val]) =>
+                `<div class="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-1.5 sm:p-3 border border-orange-200 dark:border-orange-800/50">
+                  <span class="block text-[10px] sm:text-xs text-slate-500 font-bold mb-0.5">${yr}</span>
+                  <span class="font-black text-xs sm:text-base text-orange-700 dark:text-orange-300">${fmt(val)}</span>
+                </div>`
+              ).join('')}
+            </div>`;
+          custSummaryEl.appendChild(card);
+        });
+        custSummaryEl.classList.remove('hidden');
+      } else {
+        custSummaryEl.classList.add('hidden');
+      }
+
+      const resultsContainer = document.getElementById('cd-results');
+      resultsContainer.innerHTML = '';
+
+      if (resultsArray.length === 0 && displayVolumes.length === 0 && !(isAllPPCA && !ppcaGroupFilter) && !(isAllDisk && !diskGroupFilter)) {
+        resultsContainer.innerHTML = `<p class="col-span-full text-slate-500 font-medium text-base">${t('noResults')}</p>`;
+      } else if (resultsArray.length === 0) {
+        resultsContainer.innerHTML = '';
+      } else {
+        resultsArray.forEach(item => {
+          const card = document.createElement('div');
+          card.className = "p-5 bg-white/60 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl border border-valeo-cardBorder dark:border-slate-700 hover:border-valeo-blue hover:shadow-md transition-all cursor-pointer flex flex-col";
+          const colorClass = item.type === 'PPCA' ? 'text-valeo-green' : (item.type === 'Disk' ? 'text-valeo-blue' : 'text-slate-800 dark:text-white');
+          const fgTag = item.familyGroup ? `<span class="mt-2 inline-block px-2 py-0.5 text-[10px] font-bold rounded-full bg-valeo-green/10 text-valeo-green border border-valeo-green/20">${item.familyGroup}</span>` : '';
+          card.innerHTML = `<span class="text-xs font-bold text-slate-500 uppercase tracking-wider">${item.label}</span><span class="text-2xl font-black mt-1 ${colorClass}">${item.value}</span>${fgTag}`;
+          card.onclick = () => { els.kitSelect.value = item.kit; els.compSearch.value = ''; renderDetails(item.kit); };
+          resultsContainer.appendChild(card);
+        });
+      }
+
+      els.empty.classList.add('hidden');
+      els.kitView.classList.add('hidden');
+      els.compView.classList.remove('hidden');
+      els.backBtnWrapper.classList.remove('hidden');
+      renderBreadcrumb();
+    }
+
+    function renderDetails(kitName, addToHistory = true) {
+      if (addToHistory) { navHistory.push({ view: 'kit', kit: kitName }); }
+      const matchingRows = globalData.filter(d => d.kit === kitName);
+      if (!matchingRows || matchingRows.length === 0) return;
+      const data = matchingRows[0];
+
+      document.getElementById('kd-kitname').textContent = data.kit;
+      const custRow = document.getElementById('kd-customer-row');
+      if (data.customer) {
+        const ccEl = document.getElementById('kd-cust-code');
+        const cdEl = document.getElementById('kd-cust-detail');
+        const cnEl = document.getElementById('kd-cust-name');
+        ccEl.textContent = data.customer;
+        ccEl.onclick = () => { els.compSearch.value = data.customer; els.kitSelect.value = ''; renderCompSearchResults(data.customer.toLowerCase()); closeSidebarOnMobile(); };
+        cdEl.textContent = data.customerDetail || '';
+        cdEl.onclick = data.customerDetail ? () => { els.compSearch.value = data.customerDetail; els.kitSelect.value = ''; renderCompSearchResults(data.customerDetail.toLowerCase()); closeSidebarOnMobile(); } : null;
+        cnEl.textContent = data.customerName || '';
+        custRow.classList.remove('hidden');
+      } else {
+        custRow.classList.add('hidden');
+      }
+      let t26 = 0, t27 = 0, t28 = 0, t29 = 0, t30 = 0;
+      matchingRows.forEach(r => { t26 += r.vol26; t27 += r.vol27; t28 += r.vol28; t29 += r.vol29; t30 += r.vol30; });
+      document.getElementById('kd-kit-v26').textContent = fmt(t26);
+      document.getElementById('kd-kit-v27').textContent = fmt(t27);
+      document.getElementById('kd-kit-v28').textContent = fmt(t28);
+      document.getElementById('kd-kit-v29').textContent = fmt(t29);
+      document.getElementById('kd-kit-v30').textContent = fmt(t30);
+
+      const trendYears = [t26, t27, t28, t29, t30];
+      ['t26','t27','t28','t29','t30'].forEach((tid, i) => {
+        const el = document.getElementById('kd-kit-' + tid);
+        if (!el) return;
+        if (i === 0 || trendYears[i - 1] === 0) { el.textContent = ''; return; }
+        const pct = ((trendYears[i] - trendYears[i - 1]) / trendYears[i - 1]) * 100;
+        if (pct > 0.5) {
+          el.textContent = '▲' + pct.toFixed(0) + '%';
+          el.className = 'block text-[9px] font-bold mt-0.5 text-green-500';
+        } else if (pct < -0.5) {
+          el.textContent = '▼' + Math.abs(pct).toFixed(0) + '%';
+          el.className = 'block text-[9px] font-bold mt-0.5 text-red-500';
+        } else {
+          el.textContent = '→0%';
+          el.className = 'block text-[9px] font-bold mt-0.5 text-slate-400';
+        }
+      });
+
+      document.getElementById('kd-ppca').textContent      = data.ppca     || '-';
+      const kd_fg = document.getElementById('kd-family-group');
+      if (data.familyGroup) {
+        kd_fg.innerHTML = `<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-5 5a2 2 0 01-2.828 0l-7-7A2 2 0 013 10V5a2 2 0 012-2z"/></svg> ${t('familyGroupLabel')(data.familyGroup)}`;
+        kd_fg.classList.remove('hidden');
+        kd_fg.onclick = () => { els.compSearch.value = data.familyGroup; els.kitSelect.value = ''; renderCompSearchResults(data.familyGroup.toLowerCase()); closeSidebarOnMobile(); };
+      } else {
+        kd_fg.classList.add('hidden');
+        kd_fg.onclick = null;
+      }
+      document.getElementById('ppca-line-badge').textContent = data.ppcaLine || '-';
+      document.getElementById('ppca-line-badge').onclick = data.ppcaLine ? () => {
+        els.compSearch.value = data.ppcaLine;
+        els.kitSelect.value = '';
+        renderCompSearchResults(data.ppcaLine.toLowerCase());
+        closeSidebarOnMobile();
+      } : null;
+      const ppcaLayoutBtn = document.getElementById('ppca-layout-btn');
+      const ppcaDocsBtn  = document.getElementById('ppca-docs-btn');
+      const _ppcaLine = data.ppcaLine || '';
+      if (_ppcaLine) {
+        ppcaLayoutBtn.classList.remove('hidden');
+        ppcaLayoutBtn.onclick = () => openLayoutModal(_ppcaLine);
+        const ppcaDocsUrl = LINE_DOCS[lineKey(_ppcaLine)];
+        if (ppcaDocsUrl) { ppcaDocsBtn.href = ppcaDocsUrl; ppcaDocsBtn.classList.remove('hidden'); }
+        else { ppcaDocsBtn.classList.add('hidden'); }
+      } else {
+        ppcaLayoutBtn.classList.add('hidden');
+        ppcaLayoutBtn.onclick = null;
+        ppcaDocsBtn.classList.add('hidden');
+      }
+      document.getElementById('kd-cover').textContent     = data.cover    || '-';
+      document.getElementById('kd-diaphragm').textContent = data.diaphragm || '-';
+
+      const diagFurnaceEl = document.getElementById('kd-diagFurnace');
+      if (data.diaphragmFurnace && data.diaphragmFurnace !== '-') {
+        diagFurnaceEl.textContent = data.diaphragmFurnace === 'Satınalma Komponent'
+          ? t('purchasedComp')
+          : data.diaphragmFurnace;
+        diagFurnaceEl.classList.remove('hidden');
+      } else {
+        diagFurnaceEl.classList.add('hidden');
+      }
+
+      const hasPPCA = !!data.ppca && data.ppca !== '-';
+      const hasDisk = !!data.disk && data.disk !== '-';
+      const hasDmf  = !!data.dmf  && data.dmf  !== '-';
+      const hasAny  = hasPPCA || hasDisk || hasDmf;
+
+      const ppcaCol   = document.getElementById('ppca-column');
+      const diskCol   = document.getElementById('disk-column');
+      const diskSec   = document.getElementById('disk-section');
+      const dmfCard   = document.getElementById('dmf-card');
+      const grid      = document.getElementById('components-grid');
+      const noCompMsg = document.getElementById('no-components-msg');
+
+      ppcaCol.classList.toggle('hidden', !hasPPCA);
+      diskCol.classList.toggle('hidden', !hasDisk && !hasDmf);
+      diskSec.classList.toggle('hidden', !hasDisk);
+      dmfCard.classList.toggle('hidden', !hasDmf);
+      grid.classList.toggle('hidden', !hasAny);
+      noCompMsg.classList.toggle('hidden', hasAny);
+
+      grid.className = grid.classList.contains('hidden') ? 'hidden' :
+        (hasPPCA && (hasDisk || hasDmf))
+          ? 'grid grid-cols-1 xl:grid-cols-2 gap-8 mt-2'
+          : 'grid grid-cols-1 gap-8 mt-2';
+
+      if (hasPPCA) updateLineOccupancyAndChart(data.ppcaLine, 'p', 'ppcaChart');
+
+      document.getElementById('kd-disk').textContent         = data.disk    || '-';
+      document.getElementById('disk-line-badge').textContent = data.diskLine || '-';
+      document.getElementById('disk-line-badge').onclick = data.diskLine ? () => {
+        els.compSearch.value = data.diskLine;
+        els.kitSelect.value = '';
+        renderCompSearchResults(data.diskLine.toLowerCase());
+        closeSidebarOnMobile();
+      } : null;
+      const diskLayoutBtn = document.getElementById('disk-layout-btn');
+      const diskDocsBtn  = document.getElementById('disk-docs-btn');
+      const _diskLine = data.diskLine || '';
+      if (_diskLine) {
+        diskLayoutBtn.classList.remove('hidden');
+        diskLayoutBtn.onclick = () => openLayoutModal(_diskLine);
+        const diskDocsUrl = LINE_DOCS[lineKey(_diskLine)];
+        if (diskDocsUrl) { diskDocsBtn.href = diskDocsUrl; diskDocsBtn.classList.remove('hidden'); }
+        else { diskDocsBtn.classList.add('hidden'); }
+      } else {
+        diskLayoutBtn.classList.add('hidden');
+        diskLayoutBtn.onclick = null;
+        diskDocsBtn.classList.add('hidden');
+      }
+      document.getElementById('kd-dmf').textContent          = data.dmf     || '-';
+      const dmfLineBadgeEl = document.getElementById('dmf-line-badge');
+      const dmfLayoutBtn   = document.getElementById('dmf-layout-btn');
+      const dmfDocsBtn     = document.getElementById('dmf-docs-btn');
+      if (data.dmfLine) {
+        dmfLineBadgeEl.textContent = data.dmfLine;
+        dmfLineBadgeEl.classList.remove('hidden');
+        dmfLineBadgeEl.onclick = () => {
+          els.compSearch.value = 'dmf';
+          els.kitSelect.value = '';
+          renderCompSearchResults('dmf');
+          closeSidebarOnMobile();
+        };
+        dmfLayoutBtn.classList.remove('hidden');
+        const _dmfLine = data.dmfLine || '';
+        dmfLayoutBtn.onclick = () => openLayoutModal(_dmfLine);
+        const dmfDocsUrl = LINE_DOCS[lineKey(_dmfLine)];
+        if (dmfDocsUrl) { dmfDocsBtn.href = dmfDocsUrl; dmfDocsBtn.classList.remove('hidden'); }
+        else { dmfDocsBtn.classList.add('hidden'); }
+      } else {
+        dmfLineBadgeEl.classList.add('hidden');
+        dmfLineBadgeEl.onclick = null;
+        dmfLayoutBtn.classList.add('hidden');
+        dmfLayoutBtn.onclick = null;
+        dmfDocsBtn.classList.add('hidden');
+      }
+
+      if (hasDisk) updateLineOccupancyAndChart(data.diskLine, 'd', 'diskChart');
+      if (hasDmf) renderDMFSection(data.dmfLine);
+
+      els.empty.classList.add('hidden');
+      els.compView.classList.add('hidden');
+      els.kitView.classList.remove('hidden');
+      els.backBtnWrapper.classList.remove('hidden');
+      renderBreadcrumb();
+    }
+
+    function updateLineOccupancyAndChart(lineName, prefix, canvasId) {
+      const safeSearchName = String(lineName || '').replace(/\s+/g, '').toUpperCase();
+      const stats = lineStats[safeSearchName] || { cycleTime: '-', trp: '-', shiftDay: '-', annualCapacity: 0 };
+
+      let trpFormatted = stats.trp;
+      if (stats.trp !== '-') {
+        let trpNum = Number(stats.trp);
+        if (!isNaN(trpNum)) {
+          if (trpNum <= 1 && trpNum > 0) trpNum = trpNum * 100;
+          trpFormatted = parseFloat(trpNum.toFixed(1)) + '%';
+        } else if (!String(stats.trp).includes('%')) {
+          trpFormatted += '%';
+        }
+      }
+
+      document.getElementById(`${prefix}-ct`).textContent  = stats.cycleTime;
+      document.getElementById(`${prefix}-trp`).textContent = trpFormatted;
+      document.getElementById(`${prefix}-sd`).textContent  = stats.shiftDay;
+
+      const cap = stats.annualCapacity;
+      document.getElementById(`${prefix}-cap`).textContent = fmt(cap);
+
+      let v26 = 0, v27 = 0, v28 = 0, v29 = 0, v30 = 0;
+
+      globalData.forEach(row => {
+        const pLineSafe = String(row.ppcaLine || '').replace(/\s+/g, '').toUpperCase();
+        const dLineSafe = String(row.diskLine || '').replace(/\s+/g, '').toUpperCase();
+        if (prefix === 'p' && pLineSafe === safeSearchName) {
+          v26 += row.vol26; v27 += row.vol27; v28 += row.vol28; v29 += row.vol29; v30 += row.vol30;
+        }
+        if (prefix === 'd' && dLineSafe === safeSearchName) {
+          v26 += row.vol26; v27 += row.vol27; v28 += row.vol28; v29 += row.vol29; v30 += row.vol30;
+        }
+      });
+
+      const percentages = [v26, v27, v28, v29, v30].map(val => cap > 0 ? (val / cap) * 100 : 0);
+
+      const ctx = document.getElementById(canvasId).getContext('2d');
+      if (prefix === 'p' && ppcaChartInstance) ppcaChartInstance.destroy();
+      if (prefix === 'd' && diskChartInstance)  diskChartInstance.destroy();
+
+      const isDark     = document.documentElement.classList.contains('dark');
+      const textColor  = isDark ? '#cbd5e1' : '#475569';
+      const gridColor  = isDark ? '#334155' : '#e2e8f0';
+      const baseColor  = prefix === 'p' ? '#89c341' : '#0072b5';
+
+      const bgColors = percentages.map(p => {
+        if (p >= 115) return '#ef4444';
+        if (p >= 105) return '#f97316';
+        if (p >= 98)  return '#eab308';
+        return baseColor;
+      });
+
+      const newChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: ['2027', '2028', '2029', '2030', '2031'],
+          datasets: [
+            {
+              data: percentages,
+              backgroundColor: bgColors,
+              borderRadius: 6,
+              borderSkipped: false,
+              barPercentage: 0.7,
+              datalabels: { display: true }
+            },
+            {
+              type: 'line',
+              data: percentages,
+              borderColor: baseColor + 'bb',
+              borderWidth: 2,
+              pointBackgroundColor: baseColor,
+              pointBorderColor: 'transparent',
+              pointRadius: 4,
+              tension: 0.4,
+              fill: false,
+              datalabels: { display: false }
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          layout: { padding: { top: 30 } },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: isDark ? '#1e293b' : '#ffffff',
+              titleColor:      isDark ? '#ffffff'  : '#0f172a',
+              bodyColor:       isDark ? '#cbd5e1'  : '#475569',
+              borderColor:     isDark ? '#334155'  : '#cbd5e1',
+              borderWidth: 1,
+              padding: 12,
+              displayColors: false,
+              titleFont: { size: 14 },
+              bodyFont:  { size: 15, weight: 'bold' },
+              callbacks: {
+                label: (context) => t('tooltipLabel')(context.raw)
+              }
+            },
+            datalabels: {
+              anchor: 'end',
+              align: 'top',
+              color: textColor,
+              font: { weight: 'bold', size: 14 },
+              formatter: (value) => t('datalabelFmt')(value)
+            }
+          },
+          scales: {
+            x: {
+              grid: { display: false },
+              border: { display: false },
+              ticks: { color: textColor, font: { weight: 'bold', size: 14 } }
+            },
+            y: {
+              beginAtZero: true,
+              suggestedMax: 100,
+              grid: { color: gridColor },
+              border: { display: false },
+              ticks: {
+                color: textColor,
+                font: { size: 12 },
+                callback: (value) => value + '%'
+              }
+            }
+          }
+        }
+      });
+
+      if (prefix === 'p') ppcaChartInstance = newChart;
+      if (prefix === 'd') diskChartInstance  = newChart;
+    }
+
+    function renderDMFSection(dmfLine) {
+      const key = String(dmfLine || '').replace(/\s+/g, '').toUpperCase();
+      const ld  = dmfLineData[key];
+      const qtyGrid = document.getElementById('dmf-qty-grid');
+      if (!ld) { qtyGrid.innerHTML = ''; return; }
+
+      const occs = [ld.occ26, ld.occ27, ld.occ28, ld.occ29, ld.occ30];
+      const qtys = [ld.qty26, ld.qty27, ld.qty28, ld.qty29, ld.qty30];
+
+      qtyGrid.innerHTML = ['2027','2028','2029','2030','2031'].map((yr, i) => {
+        const pct = occs[i];
+        const [bg, border, text] = pct >= 115
+          ? ['bg-red-50 dark:bg-red-900/30', 'border-red-300 dark:border-red-700', 'text-red-600 dark:text-red-400']
+          : pct >= 105
+          ? ['bg-orange-50 dark:bg-orange-900/30', 'border-orange-300 dark:border-orange-700', 'text-orange-600 dark:text-orange-400']
+          : pct >= 98
+          ? ['bg-yellow-50 dark:bg-yellow-900/30', 'border-yellow-300 dark:border-yellow-700', 'text-yellow-600 dark:text-yellow-400']
+          : ['bg-white/60 dark:bg-slate-900/50', 'border-slate-200 dark:border-slate-700', 'text-slate-800 dark:text-slate-200'];
+        const barColor = pct >= 115 ? 'bg-red-500' : pct >= 105 ? 'bg-orange-500' : pct >= 98 ? 'bg-yellow-500' : 'bg-green-500';
+        return `<div class="${bg} rounded-lg p-1.5 sm:p-3 border ${border} shadow-sm">
+          <span class="block text-[10px] sm:text-xs text-slate-500 font-bold mb-0.5">${yr}</span>
+          <span class="font-black text-xs sm:text-base ${text}">${fmt(qtys[i])}</span>
+          <span class="block text-[10px] sm:text-xs font-bold mt-0.5 ${text}">%${pct.toFixed(0)}</span>
+          <div class="mt-1 h-1 rounded-full bg-slate-200/70 dark:bg-slate-600/50"><div class="${barColor} h-1 rounded-full" style="width:${Math.min(pct,100).toFixed(0)}%"></div></div>
+        </div>`;
+      }).join('');
+
+      const ctx = document.getElementById('dmfChart').getContext('2d');
+      if (dmfChartInstance) dmfChartInstance.destroy();
+
+      const isDark    = document.documentElement.classList.contains('dark');
+      const textColor = isDark ? '#cbd5e1' : '#475569';
+      const gridColor = isDark ? '#334155' : '#e2e8f0';
+      const baseColor = '#9333ea';
+      const bgColors  = occs.map(p => p >= 115 ? '#ef4444' : p >= 105 ? '#f97316' : p >= 98 ? '#eab308' : baseColor);
+
+      dmfChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: ['2027','2028','2029','2030','2031'],
+          datasets: [
+            { data: occs, backgroundColor: bgColors, borderRadius: 6, borderSkipped: false, barPercentage: 0.7, datalabels: { display: true } },
+            { type: 'line', data: occs, borderColor: baseColor + 'bb', borderWidth: 2, pointBackgroundColor: baseColor, pointBorderColor: 'transparent', pointRadius: 4, tension: 0.4, fill: false, datalabels: { display: false } }
+          ]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false, layout: { padding: { top: 30 } },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: isDark ? '#1e293b' : '#ffffff', titleColor: isDark ? '#ffffff' : '#0f172a',
+              bodyColor: isDark ? '#cbd5e1' : '#475569', borderColor: isDark ? '#334155' : '#cbd5e1',
+              borderWidth: 1, padding: 12, displayColors: false,
+              titleFont: { size: 14 }, bodyFont: { size: 15, weight: 'bold' },
+              callbacks: { label: (context) => t('tooltipLabel')(context.raw) }
+            },
+            datalabels: { anchor: 'end', align: 'top', color: textColor, font: { weight: 'bold', size: 14 }, formatter: (value) => t('datalabelFmt')(value) }
+          },
+          scales: {
+            x: { grid: { display: false }, border: { display: false }, ticks: { color: textColor, font: { weight: 'bold', size: 14 } } },
+            y: { beginAtZero: true, suggestedMax: 100, grid: { color: gridColor }, border: { display: false }, ticks: { color: textColor, font: { size: 12 }, callback: (value) => value + '%' } }
+          }
+        }
+      });
+    }
+  </script>
+
+<style>
+  #fb-btn{position:fixed;bottom:max(20px, env(safe-area-inset-bottom));
+    right:max(72px, calc(env(safe-area-inset-right) + 64px));display:flex;align-items:center;gap:8px;
+    padding:10px 18px;background:#1E293B;color:#fff;border:none;border-radius:99px;
+    font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.25);
+    z-index:9990;transition:all .18s ease;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    max-width:calc(100vw - 16px);}
+  #fb-btn:hover{background:#0F172A;transform:translateY(-2px);}
+  #fb-overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);
+    z-index:9991;align-items:flex-end;justify-content:flex-end;
+    padding:0 max(72px, calc(env(safe-area-inset-right) + 64px)) max(76px, calc(env(safe-area-inset-bottom) + 60px)) 0;}
+  #fb-overlay.fb-open{display:flex;}
+  #fb-box{background:#fff;border-radius:16px;width:340px;box-shadow:0 8px 32px rgba(0,0,0,.2);
+    overflow:hidden;animation:fbSlide .2s ease;
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}
+  @keyframes fbSlide{from{transform:translateY(16px);opacity:0}to{transform:translateY(0);opacity:1}}
+  #fb-head{display:flex;align-items:center;justify-content:space-between;
+    padding:14px 16px;border-bottom:1px solid #E2E8F0;}
+  #fb-head span{font-size:14px;font-weight:700;color:#1E293B;}
+  #fb-head button{background:none;border:none;font-size:17px;cursor:pointer;color:#94A3B8;
+    padding:2px 5px;border-radius:4px;line-height:1;}
+  #fb-head button:hover{background:#F1F5F9;color:#1E293B;}
+  #fb-body{padding:14px 16px;display:flex;flex-direction:column;gap:12px;}
+  .fb-label{font-size:11px;font-weight:700;color:#94A3B8;text-transform:uppercase;
+    letter-spacing:.06em;display:block;margin-bottom:5px;}
+  .fb-required{color:#EF4444;}
+  #fb-type-wrap,#fb-pri-wrap{display:flex;gap:6px;}
+  .fb-type,.fb-pri{flex:1;padding:8px 4px;border:2px solid #E2E8F0;border-radius:8px;
+    background:#fff;font-size:12px;font-weight:600;color:#64748B;cursor:pointer;
+    transition:all .14s;text-align:center;font-family:inherit;}
+  .fb-type:hover,.fb-pri:hover{border-color:#94A3B8;}
+  .fb-type[data-v="Bug"].fb-sel        {border-color:#EF4444;background:#FEE2E2;color:#991B1B;}
+  .fb-type[data-v="Improvement"].fb-sel{border-color:#22C55E;background:#DCFCE7;color:#15803D;}
+  .fb-pri[data-v="Low"].fb-sel   {border-color:#3B82F6;background:#EFF6FF;color:#1D4ED8;}
+  .fb-pri[data-v="Medium"].fb-sel{border-color:#F59E0B;background:#FEF3C7;color:#92400E;}
+  .fb-pri[data-v="Urgent"].fb-sel{border-color:#EF4444;background:#FEE2E2;color:#991B1B;}
+  #fb-type-err,#fb-pri-err,#fb-msg-err{color:#EF4444;font-size:11px;display:none;margin-top:4px;}
+  #fb-message{width:100%;padding:9px 11px;border:1px solid #E2E8F0;border-radius:8px;
+    font-size:13px;font-family:inherit;resize:vertical;min-height:90px;
+    outline:none;color:#1E293B;transition:border-color .14s;}
+  #fb-message:focus{border-color:#4A6CF7;}
+  #fb-message.fb-err{border-color:#EF4444;}
+  .fb-hint{font-size:10px;font-weight:600;color:#94A3B8;text-transform:none;letter-spacing:0;}
+  #fb-img-drop{border:2px dashed #E2E8F0;border-radius:8px;padding:13px 10px;text-align:center;
+    cursor:pointer;transition:all .14s;color:#94A3B8;font-size:11.5px;font-weight:600;line-height:1.4;}
+  #fb-img-drop:hover{border-color:#4A6CF7;color:#4A6CF7;background:#F8FAFF;}
+  #fb-img-preview-wrap{display:none;position:relative;width:fit-content;}
+  #fb-img-preview{max-width:100%;max-height:130px;border-radius:8px;border:1px solid #E2E8F0;display:block;}
+  #fb-img-remove{position:absolute;top:-8px;right:-8px;width:22px;height:22px;border-radius:999px;
+    background:#1E293B;color:#fff;border:none;font-size:11px;cursor:pointer;display:flex;
+    align-items:center;justify-content:center;line-height:1;padding:0;}
+  #fb-img-remove:hover{background:#EF4444;}
+  #fb-img-name{font-size:11px;color:#64748B;margin-top:6px;word-break:break-all;}
+  #fb-img-err{color:#EF4444;font-size:11px;display:none;margin-top:4px;}
+  #fb-foot{display:flex;justify-content:flex-end;gap:8px;padding:12px 16px;
+    border-top:1px solid #E2E8F0;}
+  .fb-cancel{padding:8px 14px;border:1px solid #E2E8F0;border-radius:6px;background:#fff;
+    font-size:13px;font-weight:600;color:#64748B;cursor:pointer;font-family:inherit;}
+  .fb-cancel:hover{background:#F1F5F9;}
+  .fb-submit{padding:8px 16px;border:none;border-radius:6px;background:#4A6CF7;
+    color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .14s;}
+  .fb-submit:hover{background:#3A5AE0;}
+  .fb-submit:disabled{background:#94A3B8;cursor:not-allowed;}
+  #fb-success{display:none;padding:28px 16px;text-align:center;}
+  #fb-success .fb-ok-icon{font-size:38px;margin-bottom:8px;}
+  #fb-success strong{font-size:15px;color:#1E293B;display:block;}
+  #fb-success p{color:#64748B;font-size:13px;margin-top:5px;}
+  @media(max-width:600px){
+    #fb-btn{bottom:max(14px, env(safe-area-inset-bottom));right:max(56px, calc(env(safe-area-inset-right) + 48px));
+      padding:9px 14px;font-size:12px;}
+    #fb-overlay{padding:0 max(56px, calc(env(safe-area-inset-right) + 48px)) max(64px, calc(env(safe-area-inset-bottom) + 50px)) 0;}
+    #fb-box{width:calc(100vw - 20px);}
+  }
+</style>
+
+<button id="fb-btn" onclick="fbToggle()">
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+       stroke="#4ADE80" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+  </svg>
+  <span data-i18n="feedback">Geri Bildirim</span>
+</button>
+
+<div id="fb-overlay" onclick="fbOverlayClick(event)">
+  <div id="fb-box">
+    <div id="fb-head">
+      <span data-i18n="feedback">Geri Bildirim</span>
+      <button onclick="fbClose()">&#x2715;</button>
+    </div>
+    <div id="fb-form-wrap">
+      <div id="fb-body">
+        <div>
+          <span class="fb-label"><span data-i18n="fbType">Tür</span> <span class="fb-required">*</span></span>
+          <div id="fb-type-wrap">
+            <button type="button" class="fb-type" data-v="Bug"         onclick="fbType(this)" data-i18n="fbBug">Bug</button>
+            <button type="button" class="fb-type" data-v="Improvement" onclick="fbType(this)" data-i18n="fbImprovement">İyileştirme</button>
+          </div>
+          <div id="fb-type-err" data-i18n="fbTypeRequired">Lütfen bir tür seçin.</div>
+        </div>
+        <div>
+          <span class="fb-label"><span data-i18n="fbPriority">Öncelik</span> <span class="fb-required">*</span></span>
+          <div id="fb-pri-wrap">
+            <button type="button" class="fb-pri" data-v="Low"    onclick="fbPri(this)" data-i18n="fbLow">Düşük</button>
+            <button type="button" class="fb-pri" data-v="Medium" onclick="fbPri(this)" data-i18n="fbMedium">Orta</button>
+            <button type="button" class="fb-pri" data-v="Urgent" onclick="fbPri(this)" data-i18n="fbUrgent">Acil</button>
+          </div>
+          <div id="fb-pri-err" data-i18n="fbPriorityRequired">Lütfen bir öncelik seçin.</div>
+        </div>
+        <div>
+          <span class="fb-label"><span data-i18n="fbMessage">Mesaj</span> <span class="fb-required">*</span></span>
+          <textarea id="fb-message" placeholder="Geri bildiriminizi yazın..." data-i18n-placeholder="fbMessagePlaceholder"></textarea>
+          <div id="fb-msg-err" data-i18n="fbMessageRequired">Lütfen mesajınızı girin.</div>
+        </div>
+        <div>
+          <span class="fb-label"><span data-i18n="fbImage">Görsel</span> <span class="fb-hint" data-i18n="fbImageOptionalHint">(opsiyonel — PNG, JPG, WEBP, maks. 5MB)</span></span>
+          <input type="file" id="fb-image-input" accept="image/png,image/jpeg,image/jpg,image/webp" style="display:none" onchange="fbImagePicked(event)">
+          <div id="fb-img-drop" onclick="document.getElementById('fb-image-input').click()" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('fb-image-input').click();}">
+            &#x1F4CE;&nbsp; <span data-i18n="fbImageDropHint">Ekran görüntüsü veya görsel eklemek için tıklayın</span>
+          </div>
+          <div id="fb-img-preview-wrap">
+            <img id="fb-img-preview" alt="Görsel önizleme" data-i18n-alt="fbImagePreviewAlt">
+            <button type="button" id="fb-img-remove" onclick="fbImageRemove()" aria-label="Görseli kaldır" data-i18n-aria="fbImageRemoveLabel">&#x2715;</button>
+            <div id="fb-img-name"></div>
+          </div>
+          <div id="fb-img-err" data-i18n="fbImageInvalidMsg">Lütfen PNG, JPG veya WEBP formatında, 5MB altında bir görsel seçin.</div>
+        </div>
+      </div>
+      <div id="fb-foot">
+        <button class="fb-cancel" onclick="fbClose()" data-i18n="fbCancel">İptal</button>
+        <button class="fb-submit" id="fb-submit-btn" onclick="fbSubmit()" data-i18n="fbSubmitLabel">Gönder</button>
+      </div>
+    </div>
+    <div id="fb-success">
+      <div class="fb-ok-icon">&#x2705;</div>
+      <strong data-i18n="fbThanks">Teşekkürler!</strong>
+      <p data-i18n="fbSavedMsg">Geri bildiriminiz kaydedildi.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  var FB_APP_NAME = 'Capacity C09';
+
+  var _fbPriority = '', _fbType = '', _fbImage = null;
+  var FB_IMAGE_TYPES = ['image/png','image/jpeg','image/jpg','image/webp'];
+  var FB_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
+
+  function fbImagePicked(e){
+    var file = e.target.files && e.target.files[0];
+    if(!file) return;
+    var errEl = document.getElementById('fb-img-err');
+    if(FB_IMAGE_TYPES.indexOf(file.type) === -1 || file.size > FB_IMAGE_MAX_BYTES){
+      errEl.style.display='block';
+      e.target.value='';
+      return;
+    }
+    errEl.style.display='none';
+    var reader = new FileReader();
+    reader.onload = function(ev){
+      _fbImage = { data: ev.target.result, mimeType: file.type, fileName: file.name };
+      document.getElementById('fb-img-preview').src = ev.target.result;
+      document.getElementById('fb-img-name').textContent = file.name;
+      document.getElementById('fb-img-preview-wrap').style.display='inline-block';
+      document.getElementById('fb-img-drop').style.display='none';
+    };
+    reader.readAsDataURL(file);
+  }
+  function fbImageRemove(){
+    _fbImage = null;
+    document.getElementById('fb-image-input').value='';
+    document.getElementById('fb-img-preview').src='';
+    document.getElementById('fb-img-name').textContent='';
+    document.getElementById('fb-img-preview-wrap').style.display='none';
+    document.getElementById('fb-img-drop').style.display='';
+    document.getElementById('fb-img-err').style.display='none';
+  }
+
+  function fbToggle(){document.getElementById('fb-overlay').classList.contains('fb-open')?fbClose():fbOpen();}
+  function fbOpen(){fbReset();document.getElementById('fb-overlay').classList.add('fb-open');}
+  function fbClose(){document.getElementById('fb-overlay').classList.remove('fb-open');}
+  function fbOverlayClick(e){if(e.target===document.getElementById('fb-overlay'))fbClose();}
+  function fbType(btn){
+    document.querySelectorAll('.fb-type').forEach(function(b){b.classList.remove('fb-sel');});
+    btn.classList.add('fb-sel'); _fbType=btn.getAttribute('data-v');
+    document.getElementById('fb-type-err').style.display='none';
+  }
+  function fbPri(btn){
+    document.querySelectorAll('.fb-pri').forEach(function(b){b.classList.remove('fb-sel');});
+    btn.classList.add('fb-sel'); _fbPriority=btn.getAttribute('data-v');
+    document.getElementById('fb-pri-err').style.display='none';
+  }
+  function fbReset(){
+    _fbPriority=''; _fbType='';
+    document.querySelectorAll('.fb-pri,.fb-type').forEach(function(b){b.classList.remove('fb-sel');});
+    document.getElementById('fb-message').value='';
+    document.getElementById('fb-message').classList.remove('fb-err');
+    fbImageRemove();
+    ['fb-type-err','fb-pri-err','fb-msg-err'].forEach(function(id){
+      document.getElementById(id).style.display='none';
+    });
+    document.getElementById('fb-form-wrap').style.display='';
+    document.getElementById('fb-success').style.display='none';
+    var btn=document.getElementById('fb-submit-btn');
+    btn.disabled=false; btn.textContent=t('fbSubmitLabel');
+  }
+  function fbSubmit(){
+    var msg=document.getElementById('fb-message').value.trim();
+    var ok=true;
+    if(!_fbType){document.getElementById('fb-type-err').style.display='block';ok=false;}
+    if(!_fbPriority){document.getElementById('fb-pri-err').style.display='block';ok=false;}
+    if(!msg){
+      document.getElementById('fb-message').classList.add('fb-err');
+      document.getElementById('fb-msg-err').style.display='block'; ok=false;
+    } else {
+      document.getElementById('fb-message').classList.remove('fb-err');
+      document.getElementById('fb-msg-err').style.display='none';
+    }
+    if(!ok) return;
+    var btn=document.getElementById('fb-submit-btn');
+    btn.disabled=true; btn.textContent=t('fbSubmitting');
+    google.script.run
+      .withSuccessHandler(function(){
+        document.getElementById('fb-form-wrap').style.display='none';
+        document.getElementById('fb-success').style.display='block';
+        setTimeout(fbClose, 2200);
+      })
+      .withFailureHandler(function(err){
+        btn.disabled=false; btn.textContent=t('fbSubmitLabel');
+        alert(t('fbErrorPrefix')+(err.message||err));
+      })
+      .submitFeedback({appName:FB_APP_NAME, feedbackType:_fbType, priority:_fbPriority, message:msg, image:_fbImage});
+  }
+  document.addEventListener('keydown', function(e){if(e.key==='Escape') fbClose();});
+</script>
+
+<script>
+  var SESSION_ID = "<?= sessionId ?>";
+  var TIMEOUT_MS = <?= timeoutMin ?> * 60 * 1000;
+
+  var sessionStart = Date.now();
+  var hiddenAt     = null;
+  var exitLogged   = false;
+
+  function _logExit(exitTimestamp, durationMs) {
+    if (exitLogged) return;
+    exitLogged = true;
+    google.script.run.logExit(SESSION_ID, exitTimestamp, Math.round(durationMs / 1000));
+  }
+
+  function _newSession() {
+    exitLogged = false;
+    google.script.run
+      .withSuccessHandler(function(result) {
+        SESSION_ID   = result.sessionId;
+        sessionStart = Date.now();
+        hiddenAt     = null;
+      })
+      .createSession();
+  }
+
+  document.addEventListener('visibilitychange', function() {
+    if (document.visibilityState === 'hidden') {
+      hiddenAt = Date.now();
+    } else {
+      if (hiddenAt === null) return;
+      var elapsed = Date.now() - hiddenAt;
+      if (elapsed >= TIMEOUT_MS) {
+        _logExit(hiddenAt, hiddenAt - sessionStart);
+        _newSession();
+      } else {
+        hiddenAt = null;
+      }
+    }
+  });
+
+  window.addEventListener('beforeunload', function() {
+    if (exitLogged) return;
+    var exitAt = hiddenAt !== null ? hiddenAt : Date.now();
+    _logExit(exitAt, exitAt - sessionStart);
+  });
+</script>
+
+<!-- SVG Sharpening Filter -->
+<svg style="display:none" xmlns="http://www.w3.org/2000/svg">
+  <filter id="layoutSharpen" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+    <feConvolveMatrix order="3" kernelMatrix="0 -0.6 0  -0.6 4.4 -0.6  0 -0.6 0" preserveAlpha="true" result="sharp"/>
+    <feComponentTransfer in="sharp">
+      <feFuncR type="linear" slope="1.06" intercept="-0.03"/>
+      <feFuncG type="linear" slope="1.06" intercept="-0.03"/>
+      <feFuncB type="linear" slope="1.06" intercept="-0.03"/>
+    </feComponentTransfer>
+  </filter>
+</svg>
+
+<!-- Layout Modal -->
+<div id="layoutModal" class="hidden fixed inset-0 z-50 flex flex-col items-center justify-center" style="background:rgba(0,0,0,0.88);backdrop-filter:blur(10px)" onclick="closeLayoutModal()">
+  <div class="relative w-full max-w-6xl mx-4 flex flex-col" style="max-height:95vh" onclick="event.stopPropagation()">
+
+    <!-- Başlık + Kontroller -->
+    <div class="flex items-center justify-between mb-3 px-1 flex-shrink-0">
+      <p id="layoutModalTitle" class="text-white font-black text-lg tracking-wide"></p>
+      <div class="flex items-center gap-2">
+        <!-- Zoom butonları -->
+        <div id="layoutZoomControls" class="hidden items-center gap-1 bg-white/10 rounded-lg px-1 py-1">
+          <button onclick="layoutZoomBy(0.75)" class="w-7 h-7 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/10 rounded text-base font-bold transition-colors" title="Küçült" data-i18n-title="zoomOut">&#x2212;</button>
+          <button onclick="layoutZoomReset()" id="layoutZoomLabel" class="px-2 h-7 text-white/70 hover:text-white text-xs font-mono transition-colors rounded hover:bg-white/10" title="Sıfırla" data-i18n-title="reset">100%</button>
+          <button onclick="layoutZoomBy(1.33)" class="w-7 h-7 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/10 rounded text-base font-bold transition-colors" title="Büyüt" data-i18n-title="zoomIn">&#x2B;</button>
+        </div>
+        <button onclick="closeLayoutModal()" class="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-all text-lg">&times;</button>
+      </div>
+    </div>
+
+    <!-- Görsel alanı -->
+    <div id="layoutZoomArea" class="relative flex-1 flex items-center justify-center overflow-hidden rounded-xl" style="min-height:200px">
+      <img id="layoutModalImg" src="" alt="Hat Layout" data-i18n-alt="lineLayoutAlt" class="hidden select-none rounded-lg"
+           style="max-width:none;filter:url(#layoutSharpen)" draggable="false" />
+    </div>
+
+    <!-- Yükleniyor -->
+    <div id="layoutModalLoading" class="hidden absolute inset-0 flex flex-col items-center justify-center">
+      <div class="inline-block w-12 h-12 border-4 border-white/20 border-t-white rounded-full animate-spin"></div>
+      <p id="layoutModalLoadingText" class="text-white/60 text-sm mt-4 tracking-wide" data-i18n="layoutLoadingText">Layout yükleniyor...</p>
+    </div>
+
+    <!-- Hata -->
+    <div id="layoutModalError" class="hidden py-10 text-center text-amber-300 font-semibold text-sm px-4"></div>
+
+    <!-- Zoom ipucu -->
+    <p id="layoutZoomHint" class="hidden text-center text-white/30 text-xs mt-2 flex-shrink-0" data-i18n="layoutZoomHintText">Tekerlek ile büyüt/küçült · Sürükle ile kaydır · Çift tıkla sıfırla</p>
+  </div>
+</div>
+
+<script>
+  let layoutMap = null;
+  let layoutMapFetching = false;
+  let pendingShowImage = null;
+
+  function openLayoutModal(lineName) {
+    const modal       = document.getElementById('layoutModal');
+    const img         = document.getElementById('layoutModalImg');
+    const errEl       = document.getElementById('layoutModalError');
+    const loadingEl   = document.getElementById('layoutModalLoading');
+    const loadingText = document.getElementById('layoutModalLoadingText');
+    const titleEl     = document.getElementById('layoutModalTitle');
+
+    titleEl.textContent = t('lineLayoutTitle')(lineName);
+    img.classList.add('hidden');
+    img.src = '';
+    errEl.classList.add('hidden');
+    errEl.innerHTML = '';
+    loadingText.textContent = t('layoutLoadingText');
+    loadingEl.classList.remove('hidden');
+    modal.classList.remove('hidden');
+
+    const showImage = (result) => {
+      if (!result.ok) {
+        loadingEl.classList.add('hidden');
+        errEl.innerHTML = `<div class="mb-2">${t('driveAccessError')}</div><div class="text-xs text-amber-200/70">${result.error || ''}</div>`;
+        errEl.classList.remove('hidden');
+        return;
+      }
+      const map = result.map;
+      const key = lineName.replace(/[^A-Z0-9]/gi, '').toUpperCase();
+      const fileId = map[key];
+      if (!fileId) {
+        loadingEl.classList.add('hidden');
+        const keys = Object.keys(map);
+        if (keys.length === 0) {
+          errEl.innerHTML = `<div class="mb-2">${t('driveFolderEmpty')}</div><div class="text-xs text-amber-200/70 mt-1">${t('folderIdLabel')} 1X2jhb_li2c-WxKBld8p3GHUeZMwuOR_H</div>`;
+        } else {
+          errEl.innerHTML = `<div class="mb-2">${t('layoutImageNotFoundFor')(lineName)}</div><div class="text-xs text-amber-200/70 mt-1">${t('searchedKeyLabel')} <b>${key}</b></div><div class="text-xs text-amber-200/70 mt-2 break-all">${t('driveLinesLabel')} ${keys.join(', ')}</div>`;
+        }
+        errEl.classList.remove('hidden');
+        return;
+      }
+      loadingText.textContent = t('fetchingImageText');
+      google.script.run
+        .withSuccessHandler(imgResult => {
+          loadingEl.classList.add('hidden');
+          if (!imgResult.ok) {
+            errEl.innerHTML = `<div class="mb-2">${t('imageLoadFail')}.</div><div class="text-xs text-amber-200/70">${imgResult.error || ''}</div>`;
+            errEl.classList.remove('hidden');
+            return;
+          }
+          img.src = imgResult.dataUrl;
+          layoutZoomReset();
+          img.classList.remove('hidden');
+          document.getElementById('layoutZoomControls').classList.remove('hidden');
+          document.getElementById('layoutZoomControls').classList.add('flex');
+          document.getElementById('layoutZoomHint').classList.remove('hidden');
+          img.classList.add('entry-anim');
+          img.addEventListener('animationend', () => img.classList.remove('entry-anim'), { once: true });
+        })
+        .withFailureHandler(err => {
+          loadingEl.classList.add('hidden');
+          errEl.innerHTML = `<div class="mb-2">${t('imageFetchError')}</div><div class="text-xs text-amber-200/70">${err.message || err}</div>`;
+          errEl.classList.remove('hidden');
+        })
+        .getLayoutImage(fileId);
+    };
+
+    if (layoutMap !== null) {
+      showImage(layoutMap);
+    } else if (!layoutMapFetching) {
+      layoutMapFetching = true;
+      pendingShowImage = showImage;
+      google.script.run
+        .withSuccessHandler(result => {
+          layoutMap = result;
+          layoutMapFetching = false;
+          if (pendingShowImage) { pendingShowImage(result); pendingShowImage = null; }
+        })
+        .withFailureHandler(err => {
+          layoutMapFetching = false;
+          pendingShowImage = null;
+          loadingEl.classList.add('hidden');
+          errEl.innerHTML = `<div class="mb-2">${t('driveAccessError')}</div><div class="text-xs text-amber-200/70">${err.message || err}</div>`;
+          errEl.classList.remove('hidden');
+        })
+        .getLayoutMap();
+    } else {
+      pendingShowImage = showImage;
+    }
+  }
+
+  function closeLayoutModal() {
+    document.getElementById('layoutModal').classList.add('hidden');
+    document.getElementById('layoutZoomControls').classList.add('hidden');
+    document.getElementById('layoutZoomHint').classList.add('hidden');
+    layoutZoomReset();
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeLayoutModal();
+  });
+
+  // ── Zoom & Pan ────────────────────────────────────────────────────────────
+  (function setupLayoutZoom() {
+    const area  = document.getElementById('layoutZoomArea');
+    const img   = document.getElementById('layoutModalImg');
+    const label = document.getElementById('layoutZoomLabel');
+
+    let scale = 1, tx = 0, ty = 0;
+    let dragging = false, startX = 0, startY = 0, startTx = 0, startTy = 0;
+    let pinchDist = null;
+
+    function applyTransform(animate) {
+      img.style.transition = animate ? 'transform 0.25s ease' : 'none';
+      img.style.transform = `scale(${scale}) translate(${tx}px, ${ty}px)`;
+      label.textContent = Math.round(scale * 100) + '%';
+    }
+
+    window.layoutZoomReset = function() {
+      scale = 1; tx = 0; ty = 0;
+      applyTransform(true);
+    };
+
+    window.layoutZoomBy = function(factor) {
+      scale = Math.min(Math.max(scale * factor, 0.3), 8);
+      applyTransform(true);
+    };
+
+    area.addEventListener('wheel', e => {
+      e.preventDefault();
+      const factor = e.deltaY < 0 ? 1.15 : 0.87;
+      scale = Math.min(Math.max(scale * factor, 0.3), 8);
+      applyTransform(false);
+    }, { passive: false });
+
+    img.addEventListener('dblclick', () => { scale = 1; tx = 0; ty = 0; applyTransform(true); });
+
+    img.addEventListener('mousedown', e => {
+      if (e.button !== 0) return;
+      dragging = true;
+      startX = e.clientX; startY = e.clientY;
+      startTx = tx; startTy = ty;
+      img.classList.add('dragging');
+      e.preventDefault();
+    });
+
+    document.addEventListener('mousemove', e => {
+      if (!dragging) return;
+      tx = startTx + (e.clientX - startX) / scale;
+      ty = startTy + (e.clientY - startY) / scale;
+      applyTransform(false);
+    });
+
+    document.addEventListener('mouseup', () => {
+      dragging = false;
+      img.classList.remove('dragging');
+    });
+
+    area.addEventListener('touchstart', e => {
+      if (e.touches.length === 2) {
+        pinchDist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+      } else if (e.touches.length === 1) {
+        dragging = true;
+        startX = e.touches[0].clientX; startY = e.touches[0].clientY;
+        startTx = tx; startTy = ty;
+      }
+    }, { passive: true });
+
+    area.addEventListener('touchmove', e => {
+      e.preventDefault();
+      if (e.touches.length === 2 && pinchDist !== null) {
+        const newDist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        scale = Math.min(Math.max(scale * (newDist / pinchDist), 0.3), 8);
+        pinchDist = newDist;
+        applyTransform(false);
+      } else if (e.touches.length === 1 && dragging) {
+        tx = startTx + (e.touches[0].clientX - startX) / scale;
+        ty = startTy + (e.touches[0].clientY - startY) / scale;
+        applyTransform(false);
+      }
+    }, { passive: false });
+
+    area.addEventListener('touchend', () => { dragging = false; pinchDist = null; });
+  })();
+</script>
+</body>
+</html>
