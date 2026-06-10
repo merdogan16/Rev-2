@@ -182,7 +182,7 @@ function getLayoutImage(fileId) {
 }
 
 function getSpreadsheetData() {
-  const CACHE_KEY = 'spreadsheet_data_v10';
+  const CACHE_KEY = 'spreadsheet_data_v11';
   const cache = CacheService.getScriptCache();
   const cached = cache.get(CACHE_KEY);
   if (cached) {
@@ -227,6 +227,22 @@ function getSpreadsheetData() {
       const dmfCapRaw = summarySheet.getRange(70, 4, 4, 11).getValues(); // D70:N73
       dmfCapRaw.forEach(r => {
         const name = String(r[0] || '').trim();  // D sütunu (hat adı)
+        if (name) {
+          const key = name.replace(/[^A-Z0-9]/gi, '').toUpperCase();
+          if (!lineStatsMap[key]) lineStatsMap[key] = { cycleTime: '-', trp: '-', shiftDay: '-', annualCapacity: 0 };
+          lineStatsMap[key].cycleTime      = r[3]  || '-';  // G sütunu
+          lineStatsMap[key].trp            = r[4]  || '-';  // H sütunu
+          lineStatsMap[key].shiftDay       = r[5]  || '-';  // I sütunu
+          lineStatsMap[key].annualCapacity = Number(r[10]) || 0;  // N sütunu
+        }
+      });
+    } catch(e) {}
+
+    // PFW hat istatistiklerini D75:N78'ten doğrudan oku
+    try {
+      const pfwStatRaw = summarySheet.getRange(75, 4, 4, 11).getValues(); // D75:N78
+      pfwStatRaw.forEach(r => {
+        const name = String(r[0] || '').trim();
         if (name) {
           const key = name.replace(/[^A-Z0-9]/gi, '').toUpperCase();
           if (!lineStatsMap[key]) lineStatsMap[key] = { cycleTime: '-', trp: '-', shiftDay: '-', annualCapacity: 0 };
@@ -322,8 +338,8 @@ function getSpreadsheetData() {
         cover: String(row[16] || '').trim(),
         diaphragm: rawDiaphragm,
         diaphragmFurnace: diagFurnaceInfo,
-        disk: String(row[18] || '').trim(),
-        diskLine: String(row[19] || '').trim(),
+        disk: String(row[19] || '').trim(),     // T sütunu
+        diskLine: String(row[20] || '').trim(), // U sütunu
         diskFamilyGroup: String(row[27] || '').trim(),
         dmf: String(row[21] || '').trim(),
         dmfLine: String(row[22] || '').trim(),
