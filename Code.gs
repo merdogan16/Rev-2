@@ -182,7 +182,7 @@ function getLayoutImage(fileId) {
 }
 
 function getSpreadsheetData() {
-  const CACHE_KEY = 'spreadsheet_data_v7';
+  const CACHE_KEY = 'spreadsheet_data_v8';
   const cache = CacheService.getScriptCache();
   const cached = cache.get(CACHE_KEY);
   if (cached) {
@@ -211,8 +211,7 @@ function getSpreadsheetData() {
     
     summaryRaw.forEach(row => {
       const rawName = String(row[4] || row[3] || '');
-      // .replace(/\s+/g, '') kodu metindeki BÜTÜN boşlukları siler.
-      const lineName = rawName.replace(/\s+/g, '').toUpperCase(); 
+      const lineName = rawName.replace(/\s+/g, '').toUpperCase();
       if (lineName) {
         lineStatsMap[lineName] = {
           cycleTime: row[6] || '-',
@@ -222,6 +221,20 @@ function getSpreadsheetData() {
         };
       }
     });
+
+    // DMF hat kapasitelerini D70:N73'ten doğrudan oku (generic scan'i override eder)
+    try {
+      const dmfCapRaw = summarySheet.getRange(70, 4, 4, 11).getValues(); // D70:N73
+      dmfCapRaw.forEach(r => {
+        const name = String(r[0] || '').trim();  // D sütunu
+        const cap  = Number(r[10]) || 0;          // N sütunu (D'den 10 sütun ileride)
+        if (name) {
+          const key = name.replace(/[^A-Z0-9]/gi, '').toUpperCase();
+          if (!lineStatsMap[key]) lineStatsMap[key] = { cycleTime: '-', trp: '-', shiftDay: '-', annualCapacity: 0 };
+          lineStatsMap[key].annualCapacity = cap;
+        }
+      });
+    } catch(e) {}
 
     // 2. DIAPHRAGM FIRIN VERİLERİ
     const diagLastRow = Math.max(diagSheet.getLastRow(), 1);
@@ -275,7 +288,7 @@ function getSpreadsheetData() {
 
       const kitRef = String(row[13] || '').trim();
       const productFamily = String(row[8] || '').trim().toUpperCase();
-      const eDriveLine = productFamily === 'A05' ? (refToEDriveLine[kitRef.toUpperCase()] || '') : '';
+      const eDriveLine = productFamily === 'A05' ? (refToEDriveLine[kitRef.toUpperCase()] || 'E-Drive') : '';
 
       return {
         kit: kitRef,
