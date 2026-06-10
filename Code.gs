@@ -121,15 +121,21 @@ function createSession() {
 }
 
 function logExit(sessionId, exitTimestamp, durationSec) {
-  var sheet = _getOrCreateLogSheet();
-  var data  = sheet.getDataRange().getValues();
-  for (var i = data.length - 1; i >= 1; i--) {
-    if (data[i][0] === sessionId && data[i][5] === 'Açık') {
-      sheet.getRange(i + 1, 4).setValue(new Date(exitTimestamp));
-      sheet.getRange(i + 1, 5).setValue(Math.round(durationSec / 60 * 10) / 10);
-      sheet.getRange(i + 1, 6).setValue('Tamamlandı');
-      break;
+  var lock = LockService.getScriptLock();
+  try { lock.waitLock(3000); } catch (e) { return; }
+  try {
+    var sheet = _getOrCreateLogSheet();
+    var data  = sheet.getDataRange().getValues();
+    for (var i = data.length - 1; i >= 1; i--) {
+      if (data[i][0] === sessionId && data[i][5] === 'Açık') {
+        sheet.getRange(i + 1, 4).setValue(new Date(exitTimestamp));
+        sheet.getRange(i + 1, 5).setValue(Math.round(durationSec / 60 * 10) / 10);
+        sheet.getRange(i + 1, 6).setValue('Tamamlandı');
+        break;
+      }
     }
+  } finally {
+    lock.releaseLock();
   }
 }
 
@@ -176,14 +182,21 @@ function getLayoutImage(fileId) {
 }
 
 function getSpreadsheetData() {
+  const CACHE_KEY = 'spreadsheet_data_v1';
+  const cache = CacheService.getScriptCache();
+  const cached = cache.get(CACHE_KEY);
+  if (cached) {
+    try { return JSON.parse(cached); } catch (e) { /* cache bozuk, devam et */ }
+  }
+
   const mainSsId = '1k3Hkb9F0vwpXXR6un2CPWzShol0bjTM2TZXITt94pI0';
   const summarySsId = '1SmV8rQitLQaUdpCmpUqL_xNR0v4G8nZHNXwK_BeH354';
-  
+
   try {
     const mainSs = SpreadsheetApp.openById(mainSsId);
     const summarySs = SpreadsheetApp.openById(summarySsId);
     
-    const mtpSheet = mainSs.getSheetByName('OYKU');
+    const mtpSheet = mainSs.getSheetByName('MAIN');
     const diagSheet = mainSs.getSheetByName('Diaphragm Line');
     const summarySheet = summarySs.getSheetByName('MTP_summary');
     
@@ -306,12 +319,21 @@ function getSpreadsheetData() {
       };
     }
 
-    return {
+    const result = {
       globalData: formattedData,
       lineStats: lineStatsMap,
       dmfLineData: dmfLineData
     };
-    
+
+    try {
+      const serialized = JSON.stringify(result);
+      if (serialized.length < 90000) {
+        cache.put(CACHE_KEY, serialized, 900); // 15 dakika
+      }
+    } catch (e) { /* veri önbellek limitini aşıyor, atla */ }
+
+    return result;
+
   } catch (error) {
     return { error: error.toString() };
   }
