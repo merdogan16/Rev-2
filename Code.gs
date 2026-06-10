@@ -182,7 +182,7 @@ function getLayoutImage(fileId) {
 }
 
 function getSpreadsheetData() {
-  const CACHE_KEY = 'spreadsheet_data_v9';
+  const CACHE_KEY = 'spreadsheet_data_v10';
   const cache = CacheService.getScriptCache();
   const cached = cache.get(CACHE_KEY);
   if (cached) {
@@ -255,7 +255,29 @@ function getSpreadsheetData() {
       }
     }
     
-    // 3. E-DRIVE SHEET → hat/ref haritası (formattedData'dan önce oluşturulmalı)
+    // 3. PFW SHEET → DMF ref → PFW/SpringGuide/DrivePlate haritası
+    const pfwSheet = mainSs.getSheetByName('PFW');
+    const pfwMap = {};
+    if (pfwSheet) {
+      const pfwLastRow = Math.max(pfwSheet.getLastRow(), 1);
+      const pfwRaw = pfwSheet.getRange(1, 1, pfwLastRow, 9).getValues();
+      pfwRaw.forEach(row => {
+        const dmfRef = String(row[1] || '').trim();  // B sütunu: DMF referansı
+        const pfwRef = String(row[3] || '').trim();  // D sütunu: PFW referansı
+        if (dmfRef && pfwRef) {
+          pfwMap[dmfRef.toUpperCase()] = {
+            pfw:             pfwRef,
+            pfwLine:         String(row[4] || '').trim(),  // E
+            springGuide:     String(row[5] || '').trim(),  // F
+            springGuideLine: String(row[6] || '').trim(),  // G
+            drivePlate:      String(row[7] || '').trim(),  // H
+            drivePlateLine:  String(row[8] || '').trim()   // I
+          };
+        }
+      });
+    }
+
+    // 4. E-DRIVE SHEET → hat/ref haritası (formattedData'dan önce oluşturulmalı)
     const eDriveSheet = mainSs.getSheetByName('E-Drive');
     const eDriveData = [];
     const refToEDriveLine = {};
@@ -272,7 +294,7 @@ function getSpreadsheetData() {
       });
     }
 
-    // 4. ANA MTP VERİLERİ
+    // 5. ANA MTP VERİLERİ
     const mtpLastRow = Math.max(mtpSheet.getLastRow(), 8);
     const mtpRaw = mtpSheet.getRange(8, 1, mtpLastRow - 7, 100).getValues();
 
@@ -321,7 +343,8 @@ function getSpreadsheetData() {
     const result = {
       globalData: formattedData,
       lineStats: lineStatsMap,
-      eDriveData: eDriveData
+      eDriveData: eDriveData,
+      pfwMap: pfwMap
     };
 
     try {

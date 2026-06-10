@@ -520,7 +520,8 @@
                     </a>
                   </div>
                 </div>
-                <div id="kd-dmf" class="text-4xl lg:text-5xl font-bold mb-4">-</div>
+                <div id="kd-dmf" class="text-4xl lg:text-5xl font-bold mb-2">-</div>
+                <div id="kd-pfw-info" class="hidden flex flex-col gap-1.5 mb-3 p-3 rounded-lg bg-orange-50/60 dark:bg-orange-900/20 border border-orange-200/60 dark:border-orange-800/40"></div>
               </div>
 
               <div class="grid grid-cols-3 gap-3">
@@ -569,6 +570,7 @@
     let globalData = [];
     let lineStats = {};
     let eDriveData = [];
+    let pfwMap = {};
     let ppcaChartInstance = null;
 
     // Hat → Drive klasör linki haritası (anahtar: normalize edilmiş hat adı)
@@ -995,6 +997,7 @@
           globalData = data.globalData;
           lineStats = data.lineStats;
           eDriveData = data.eDriveData || [];
+          pfwMap = data.pfwMap || {};
 
           const kits = [...new Set(globalData.map(d => d.kit))].sort();
           allKits = kits;
@@ -1569,7 +1572,21 @@
           const ctTag  = (item.type === 'Kit' && kitRow && kitRow.customerType)
             ? `<span class="mt-2 inline-block px-2 py-0.5 text-[10px] font-black rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-700 tracking-wide uppercase">${escapeHtml(kitRow.customerType)}</span>`
             : '';
-          card.innerHTML = `<span class="text-xs font-bold text-slate-500 uppercase tracking-wider">${item.label}</span><span class="text-2xl font-black mt-1 ${colorClass}">${item.value}</span>${fgTag}${dfgTag}${ctTag}`;
+          let pfwSubHtml = '';
+          if (item.type === 'DMF') {
+            const pd = pfwMap[String(item.value || '').toUpperCase()];
+            if (pd && (pd.pfw || pd.springGuide || pd.drivePlate)) {
+              const pfwLine = (label, ref, line) => ref
+                ? `<div class="flex items-center gap-1.5"><span class="text-[10px] font-bold text-slate-400 uppercase w-20 shrink-0">${label}:</span><span class="text-[11px] font-bold text-orange-600 dark:text-orange-400">${escapeHtml(ref)}${line ? `<span class="text-slate-400 font-normal"> (${escapeHtml(line)})</span>` : ''}</span></div>`
+                : '';
+              pfwSubHtml = `<div class="mt-2 pt-2 border-t border-slate-200 dark:border-slate-600 flex flex-col gap-0.5">
+                ${pfwLine('PFW', pd.pfw, pd.pfwLine)}
+                ${pfwLine('Spring Guide', pd.springGuide, pd.springGuideLine)}
+                ${pfwLine('Drive Plate', pd.drivePlate, pd.drivePlateLine)}
+              </div>`;
+            }
+          }
+          card.innerHTML = `<span class="text-xs font-bold text-slate-500 uppercase tracking-wider">${item.label}</span><span class="text-2xl font-black mt-1 ${colorClass}">${item.value}</span>${fgTag}${dfgTag}${ctTag}${pfwSubHtml}`;
           card.onclick = () => { els.kitSelect.value = item.kit; els.compSearch.value = ''; renderDetails(item.kit); };
           resultsContainer.appendChild(card);
         });
@@ -1739,7 +1756,24 @@
         diskLayoutBtn.onclick = null;
         diskDocsBtn.classList.add('hidden');
       }
-      document.getElementById('kd-dmf').textContent          = data.dmf     || '-';
+      document.getElementById('kd-dmf').textContent = data.dmf || '-';
+      const pfwInfoEl = document.getElementById('kd-pfw-info');
+      const pfwData = pfwMap[String(data.dmf || '').toUpperCase()];
+      if (pfwData && pfwData.pfw) {
+        const pfwRow = (label, ref, line) => ref
+          ? `<div class="flex items-center gap-2 text-xs">
+               <span class="font-bold text-slate-500 uppercase tracking-wider w-24 shrink-0">${label}</span>
+               <span class="font-bold text-orange-700 dark:text-orange-300">${escapeHtml(ref)}</span>
+               ${line ? `<span class="text-slate-400 dark:text-slate-500">(${escapeHtml(line)})</span>` : ''}
+             </div>` : '';
+        pfwInfoEl.innerHTML =
+          pfwRow('PFW', pfwData.pfw, pfwData.pfwLine) +
+          pfwRow('Spring Guide', pfwData.springGuide, pfwData.springGuideLine) +
+          pfwRow('Drive Plate', pfwData.drivePlate, pfwData.drivePlateLine);
+        pfwInfoEl.classList.remove('hidden');
+      } else {
+        pfwInfoEl.classList.add('hidden');
+      }
       const dmfLineBadgeEl = document.getElementById('dmf-line-badge');
       const dmfLayoutBtn   = document.getElementById('dmf-layout-btn');
       const dmfDocsBtn     = document.getElementById('dmf-docs-btn');
