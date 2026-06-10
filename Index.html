@@ -481,7 +481,10 @@
                     </a>
                   </div>
                 </div>
-                <div id="kd-disk" class="text-4xl lg:text-5xl font-bold mb-4">-</div>
+                <div id="kd-disk" class="text-4xl lg:text-5xl font-bold mb-2">-</div>
+                <div class="mb-3">
+                  <span id="kd-disk-family-group" class="hidden inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-full bg-valeo-blue/10 text-valeo-blue border border-valeo-blue/25 tracking-wide cursor-pointer hover:bg-valeo-blue/20 transition-colors"></span>
+                </div>
               </div>
 
               <div class="grid grid-cols-3 gap-3">
@@ -1351,13 +1354,21 @@
           const cov  = String(d.cover     || '').toLowerCase();
           const dia  = String(d.diaphragm || '').toLowerCase();
           const dmf  = String(d.dmf       || '').toLowerCase();
-          const fg   = String(d.familyGroup || '').toLowerCase();
+          const fg  = String(d.familyGroup     || '').toLowerCase();
+          const dfg = String(d.diskFamilyGroup || '').toLowerCase();
 
-          // Aile grubu araması
+          // PPCA aile grubu araması
           if (fg && fg.includes(termLower) && d.ppca) {
             const fgKey = 'FG-' + d.ppca;
             if (!uniqueResults.has(fgKey))
               uniqueResults.set(fgKey, { type: 'PPCA', label: t('ppcaFamilyGroupLabel')(d.familyGroup), value: d.ppca, kit: d.kit, familyGroup: d.familyGroup });
+          }
+
+          // Disk aile grubu araması
+          if (dfg && dfg.includes(termLower) && d.disk) {
+            const dfgKey = 'DFG-' + d.disk;
+            if (!uniqueResults.has(dfgKey))
+              uniqueResults.set(dfgKey, { type: 'Disk', label: t('familyGroupLabel')(d.diskFamilyGroup), value: d.disk, kit: d.kit, diskFamilyGroup: d.diskFamilyGroup });
           }
 
           // Müşteri araması (tip + B→C→D hiyerarşisi)
@@ -1527,12 +1538,13 @@
           const card = document.createElement('div');
           card.className = "p-5 bg-white/60 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl border border-valeo-cardBorder dark:border-slate-700 hover:border-valeo-blue hover:shadow-md transition-all cursor-pointer flex flex-col";
           const colorClass = item.type === 'PPCA' ? 'text-valeo-green' : (item.type === 'Disk' ? 'text-valeo-blue' : 'text-slate-800 dark:text-white');
-          const fgTag = item.familyGroup ? `<span class="mt-2 inline-block px-2 py-0.5 text-[10px] font-bold rounded-full bg-valeo-green/10 text-valeo-green border border-valeo-green/20">${item.familyGroup}</span>` : '';
+          const fgTag  = item.familyGroup     ? `<span class="mt-2 inline-block px-2 py-0.5 text-[10px] font-bold rounded-full bg-valeo-green/10 text-valeo-green border border-valeo-green/20">${escapeHtml(item.familyGroup)}</span>` : '';
+          const dfgTag = item.diskFamilyGroup ? `<span class="mt-2 inline-block px-2 py-0.5 text-[10px] font-bold rounded-full bg-valeo-blue/10 text-valeo-blue border border-valeo-blue/20">${escapeHtml(item.diskFamilyGroup)}</span>` : '';
           const kitRow = globalData.find(g => g.kit === item.kit);
-          const ctTag = (item.type === 'Kit' && kitRow && kitRow.customerType)
+          const ctTag  = (item.type === 'Kit' && kitRow && kitRow.customerType)
             ? `<span class="mt-2 inline-block px-2 py-0.5 text-[10px] font-black rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-700 tracking-wide uppercase">${escapeHtml(kitRow.customerType)}</span>`
             : '';
-          card.innerHTML = `<span class="text-xs font-bold text-slate-500 uppercase tracking-wider">${item.label}</span><span class="text-2xl font-black mt-1 ${colorClass}">${item.value}</span>${fgTag}${ctTag}`;
+          card.innerHTML = `<span class="text-xs font-bold text-slate-500 uppercase tracking-wider">${item.label}</span><span class="text-2xl font-black mt-1 ${colorClass}">${item.value}</span>${fgTag}${dfgTag}${ctTag}`;
           card.onclick = () => { els.kitSelect.value = item.kit; els.compSearch.value = ''; renderDetails(item.kit); };
           resultsContainer.appendChild(card);
         });
@@ -1672,6 +1684,15 @@
       if (hasPPCA) updateLineOccupancyAndChart(data.ppcaLine, 'p', 'ppcaChart');
 
       document.getElementById('kd-disk').textContent         = data.disk    || '-';
+      const kd_dfg = document.getElementById('kd-disk-family-group');
+      if (data.diskFamilyGroup) {
+        kd_dfg.innerHTML = `<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-5 5a2 2 0 01-2.828 0l-7-7A2 2 0 013 10V5a2 2 0 012-2z"/></svg> ${t('familyGroupLabel')(data.diskFamilyGroup)}`;
+        kd_dfg.classList.remove('hidden');
+        kd_dfg.onclick = () => { els.compSearch.value = data.diskFamilyGroup; els.kitSelect.value = ''; renderCompSearchResults(data.diskFamilyGroup.toLowerCase()); closeSidebarOnMobile(); };
+      } else {
+        kd_dfg.classList.add('hidden');
+        kd_dfg.onclick = null;
+      }
       document.getElementById('disk-line-badge').textContent = data.diskLine || '-';
       document.getElementById('disk-line-badge').onclick = data.diskLine ? () => {
         els.compSearch.value = data.diskLine;
