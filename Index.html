@@ -1303,8 +1303,10 @@
       globalData.forEach(d => {
         const pLineRaw = String(d.ppcaLine || '').trim();
         const dLineRaw = String(d.diskLine || '').trim();
+        const mLineRaw = String(d.dmfLine  || '').trim();
         const pLine = pLineRaw.toLowerCase();
         const dLine = dLineRaw.toLowerCase();
+        const mLine = mLineRaw.toLowerCase();
 
         if (!isAllPPCA && !isAllDisk && !isAllDMF && !isAllEDrive) {
           if (pLine.includes(termLower) && d.ppca) {
@@ -1314,6 +1316,10 @@
           if (dLine.includes(termLower) && d.disk) {
             if (!uniqueResults.has('Disk-' + d.disk))
               uniqueResults.set('Disk-' + d.disk, { type: 'Disk', label: `Disk (${d.diskLine})`, value: d.disk, kit: d.kit });
+          }
+          if (mLine.includes(termLower) && d.dmf) {
+            if (!uniqueResults.has('DMF-' + d.dmf))
+              uniqueResults.set('DMF-' + d.dmf, { type: 'DMF', label: `DMF (${d.dmfLine})`, value: d.dmf, kit: d.kit });
           }
         }
 
@@ -1546,7 +1552,7 @@
         resultsArray.forEach(item => {
           const card = document.createElement('div');
           card.className = "p-5 bg-white/60 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl border border-valeo-cardBorder dark:border-slate-700 hover:border-valeo-blue hover:shadow-md transition-all cursor-pointer flex flex-col";
-          const colorClass = item.type === 'PPCA' ? 'text-valeo-green' : (item.type === 'Disk' ? 'text-valeo-blue' : 'text-slate-800 dark:text-white');
+          const colorClass = item.type === 'PPCA' ? 'text-valeo-green' : item.type === 'Disk' ? 'text-valeo-blue' : item.type === 'DMF' ? 'text-purple-600 dark:text-purple-400' : 'text-slate-800 dark:text-white';
           const fgTag  = item.familyGroup     ? `<span class="mt-2 inline-block px-2 py-0.5 text-[10px] font-bold rounded-full bg-valeo-green/10 text-valeo-green border border-valeo-green/20">${escapeHtml(item.familyGroup)}</span>` : '';
           const dfgTag = item.diskFamilyGroup ? `<span class="mt-2 inline-block px-2 py-0.5 text-[10px] font-bold rounded-full bg-valeo-blue/10 text-valeo-blue border border-valeo-blue/20">${escapeHtml(item.diskFamilyGroup)}</span>` : '';
           const kitRow = globalData.find(g => g.kit === item.kit);
