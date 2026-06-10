@@ -182,7 +182,7 @@ function getLayoutImage(fileId) {
 }
 
 function getSpreadsheetData() {
-  const CACHE_KEY = 'spreadsheet_data_v11';
+  const CACHE_KEY = 'spreadsheet_data_v12';
   const cache = CacheService.getScriptCache();
   const cached = cache.get(CACHE_KEY);
   if (cached) {
@@ -267,7 +267,7 @@ function getSpreadsheetData() {
         for (let c = 1; c <= 8; c++) {
           if (row[c] && String(row[c]).trim() !== '') activeData.push(String(row[c]).trim());
         }
-        diagMap[baseDiagId] = activeData.join(', ');
+        diagMap[baseDiagId] = activeData;  // dizi olarak sakla
       }
     }
     
@@ -315,15 +315,21 @@ function getSpreadsheetData() {
     const mtpRaw = mtpSheet.getRange(8, 1, mtpLastRow - 7, 100).getValues();
 
     const formattedData = mtpRaw.map(row => {
-      const rawDiaphragm = String(row[17] || '').trim();
+      const rawDiaphragm = String(row[18] || '').trim();  // S sütunu
       let diagFurnaceInfo = '-';
+      let diagLines = [];
       if (rawDiaphragm) {
         const upperDiag = rawDiaphragm.toUpperCase();
-        if (upperDiag.endsWith('C')) diagFurnaceInfo = 'Satınalma Komponent';
-        else if (upperDiag.endsWith('Y')) {
+        if (upperDiag.endsWith('C')) {
+          diagFurnaceInfo = 'Satınalma Komponent';
+        } else if (upperDiag.endsWith('Y')) {
           const baseId = upperDiag.slice(0, -1);
-          diagFurnaceInfo = diagMap[baseId] ? diagMap[baseId] : '-';
-        } else diagFurnaceInfo = diagMap[upperDiag] ? diagMap[upperDiag] : '-';
+          diagLines = diagMap[baseId] || [];
+          diagFurnaceInfo = diagLines.length > 0 ? diagLines.join(', ') : '-';
+        } else {
+          diagLines = diagMap[upperDiag] || [];
+          diagFurnaceInfo = diagLines.length > 0 ? diagLines.join(', ') : '-';
+        }
       }
 
       const kitRef = String(row[13] || '').trim();
@@ -336,8 +342,10 @@ function getSpreadsheetData() {
         ppca: String(row[14] || '').trim(),
         ppcaLine: String(row[15] || '').trim(),
         cover: String(row[16] || '').trim(),
+        coverLine: String(row[17] || '').trim(),  // R sütunu
         diaphragm: rawDiaphragm,
         diaphragmFurnace: diagFurnaceInfo,
+        diaphragmLines: diagLines,
         disk: String(row[19] || '').trim(),     // T sütunu
         diskLine: String(row[20] || '').trim(), // U sütunu
         diskFamilyGroup: String(row[27] || '').trim(),
