@@ -523,11 +523,13 @@
                 <div id="kd-pfw-info" class="hidden flex flex-col gap-1.5 mb-3 p-3 rounded-lg bg-orange-50/60 dark:bg-orange-900/20 border border-orange-200/60 dark:border-orange-800/40"></div>
               </div>
 
+              <!-- CT/TRP/SD geçici olarak gizlendi
               <div class="grid grid-cols-3 gap-3">
                 <div class="stat-pill p-4 rounded-xl"><span class="block text-xs font-bold uppercase text-slate-500 mb-1">Cycle Time</span><span id="m-ct" class="font-black text-xl text-slate-700 dark:text-slate-200">-</span></div>
                 <div class="stat-pill p-4 rounded-xl"><span class="block text-xs font-bold uppercase text-slate-500 mb-1">TRP</span><span id="m-trp" class="font-black text-xl text-slate-700 dark:text-slate-200">-</span></div>
                 <div class="stat-pill p-4 rounded-xl"><span class="block text-xs font-bold uppercase text-slate-500 mb-1">Shift / Day</span><span id="m-sd" class="font-black text-xl text-slate-700 dark:text-slate-200">-</span></div>
               </div>
+              -->
 
               <div id="dmf-qty-grid" class="grid grid-cols-5 gap-1 sm:gap-2 text-center"></div>
               <div class="glass-panel rounded-xl p-5 flex flex-col">
@@ -2099,9 +2101,10 @@
           trpFormatted += '%';
         }
       }
-      document.getElementById('m-ct').textContent  = stats.cycleTime;
-      document.getElementById('m-trp').textContent = trpFormatted;
-      document.getElementById('m-sd').textContent  = stats.shiftDay;
+      // CT/TRP/SD geçici olarak gizlendi — elementler yok, atama atlandı
+      // document.getElementById('m-ct').textContent  = stats.cycleTime;
+      // document.getElementById('m-trp').textContent = trpFormatted;
+      // document.getElementById('m-sd').textContent  = stats.shiftDay;
       document.getElementById('m-cap').textContent = fmt(cap);
 
       let v26 = 0, v27 = 0, v28 = 0, v29 = 0, v30 = 0;
