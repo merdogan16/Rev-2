@@ -1033,12 +1033,20 @@
           eDriveData = data.eDriveData || [];
           pfwMap = data.pfwMap || {};
 
+          // DEBUG — DMF keys in lineStats
+          const dmfKeys = Object.keys(lineStats||{}).filter(k=>k.startsWith('DMF'));
+          console.log('[DEBUG] getSpreadsheetData lineStats DMF keys:', dmfKeys);
+          dmfKeys.forEach(k => console.log('[DEBUG]', k, JSON.stringify(lineStats[k])));
+
           // DMF/PFW istatistiklerini cache'den bağımsız olarak canlı çek
           google.script.run
             .withSuccessHandler(function(freshStats) {
               if (freshStats && Object.keys(freshStats).length > 0) {
                 Object.assign(lineStats, freshStats);
               }
+              const fKeys = Object.keys(freshStats||{}).filter(k=>k.startsWith('DMF'));
+              console.log('[DEBUG] getLineStats freshStats DMF keys:', fKeys);
+              fKeys.forEach(k => console.log('[DEBUG] fresh', k, JSON.stringify(freshStats[k])));
             })
             .getLineStats();
 
@@ -2084,6 +2092,7 @@
     function renderDMFSection(dmfLine) {
       const qtyGrid = document.getElementById('dmf-qty-grid');
       const key = lineKey(dmfLine || '');
+      console.log('[DEBUG] renderDMFSection dmfLine:', dmfLine, '→ key:', key, '→ stats:', JSON.stringify(lineStats[key]));
       if (!key) { qtyGrid.innerHTML = ''; return; }
 
       const stats = lineStats[key] || { cycleTime: '-', trp: '-', shiftDay: '-', annualCapacity: 0 };
