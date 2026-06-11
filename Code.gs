@@ -182,7 +182,7 @@ function getLayoutImage(fileId) {
 }
 
 function getSpreadsheetData() {
-  const CACHE_KEY = 'spreadsheet_data_v16';
+  const CACHE_KEY = 'spreadsheet_data_v17';
   const cache = CacheService.getScriptCache();
   const cached = cache.get(CACHE_KEY);
   if (cached) {
@@ -209,7 +209,9 @@ function getSpreadsheetData() {
     const summaryRaw = summarySheet.getRange(2, 1, summaryLastRow - 1, 14).getValues();
     const lineStatsMap = {};
     
-    summaryRaw.forEach(row => {
+    summaryRaw.forEach((row, idx) => {
+      const rowNum = idx + 2; // satır 2'den başlıyor
+      if (rowNum >= 70 && rowNum <= 78) return; // DMF (70-73) ve PFW (75-78) explicit bloklara bırak
       const rawName = String(row[4] || row[3] || '');
       const lineName = rawName.replace(/[^A-Z0-9]/gi, '').toUpperCase();
       if (lineName) {
