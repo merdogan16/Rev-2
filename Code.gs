@@ -186,7 +186,31 @@ function getSpreadsheetData() {
   const cache = CacheService.getScriptCache();
   const cached = cache.get(CACHE_KEY);
   if (cached) {
-    try { return JSON.parse(cached); } catch (e) { /* cache bozuk, devam et */ }
+    try {
+      const result = JSON.parse(cached);
+      // DMF/PFW istatistiklerini her zaman sheet'ten canlı güncelle (cache'i bypass et)
+      const summarySs = SpreadsheetApp.openById('1SmV8rQitLQaUdpCmpUqL_xNR0v4G8nZHNXwK_BeH354');
+      const summarySheet = summarySs.getSheetByName('MTP_summary');
+      if (summarySheet && result.lineStats) {
+        [[70, 4], [75, 4]].forEach(([startRow, startCol]) => {
+          try {
+            summarySheet.getRange(startRow, startCol, 4, 11).getValues().forEach(r => {
+              const name = String(r[0] || '').trim();
+              if (name) {
+                const key = name.replace(/[^A-Z0-9]/gi, '').toUpperCase();
+                result.lineStats[key] = {
+                  cycleTime:      r[3]  || '-',
+                  trp:            r[4]  || '-',
+                  shiftDay:       r[5]  || '-',
+                  annualCapacity: Number(r[10]) || 0
+                };
+              }
+            });
+          } catch(e) {}
+        });
+      }
+      return result;
+    } catch (e) { /* cache bozuk, devam et */ }
   }
 
   const mainSsId = '1k3Hkb9F0vwpXXR6un2CPWzShol0bjTM2TZXITt94pI0';
