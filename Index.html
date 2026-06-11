@@ -1033,6 +1033,15 @@
           eDriveData = data.eDriveData || [];
           pfwMap = data.pfwMap || {};
 
+          // DMF/PFW istatistiklerini cache'den bağımsız olarak canlı çek
+          google.script.run
+            .withSuccessHandler(function(freshStats) {
+              if (freshStats && Object.keys(freshStats).length > 0) {
+                Object.assign(lineStats, freshStats);
+              }
+            })
+            .getLineStats();
+
           const kits = [...new Set(globalData.map(d => d.kit))].sort();
           allKits = kits;
           els.kitSelect.innerHTML = `<option value="">${t('kitSelectPlaceholder')}</option>`;
@@ -2078,8 +2087,6 @@
       if (!key) { qtyGrid.innerHTML = ''; return; }
 
       const stats = lineStats[key] || { cycleTime: '-', trp: '-', shiftDay: '-', annualCapacity: 0 };
-      console.log('[DMF DEBUG] dmfLine=', dmfLine, '| key=', key, '| stats=', JSON.stringify(stats));
-      console.log('[DMF DEBUG] lineStats keys=', Object.keys(lineStats).filter(k => k.startsWith('DMF')));
       const cap   = stats.annualCapacity;
 
       let trpFormatted = stats.trp;

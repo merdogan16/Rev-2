@@ -412,3 +412,28 @@ function getSpreadsheetData() {
     return { error: error.toString() };
   }
 }
+
+function getLineStats() {
+  const summarySsId = '1SmV8rQitLQaUdpCmpUqL_xNR0v4G8nZHNXwK_BeH354';
+  try {
+    const sheet = SpreadsheetApp.openById(summarySsId).getSheetByName('MTP_summary');
+    const stats = {};
+    [[70, 4], [75, 4]].forEach(function(pair) {
+      sheet.getRange(pair[0], pair[1], 4, 11).getValues().forEach(function(r) {
+        const name = String(r[0] || '').trim();
+        if (name) {
+          const key = name.replace(/[^A-Z0-9]/gi, '').toUpperCase();
+          stats[key] = {
+            cycleTime:      r[3]  || '-',
+            trp:            r[4]  || '-',
+            shiftDay:       r[5]  || '-',
+            annualCapacity: Number(r[10]) || 0
+          };
+        }
+      });
+    });
+    return stats;
+  } catch(e) {
+    return {};
+  }
+}
