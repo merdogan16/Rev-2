@@ -438,6 +438,11 @@ function getLineStats() {
   }
 }
 
+function clearCache() {
+  CacheService.getScriptCache().remove('spreadsheet_data_v17');
+  Logger.log('Cache temizlendi. Bir sonraki web app isteği sheet\'ten taze veri okuyacak.');
+}
+
 function debugDMFRows() {
   const summarySsId = '1SmV8rQitLQaUdpCmpUqL_xNR0v4G8nZHNXwK_BeH354';
   const sheet = SpreadsheetApp.openById(summarySsId).getSheetByName('MTP_summary');
