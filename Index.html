@@ -2078,6 +2078,8 @@
       if (!key) { qtyGrid.innerHTML = ''; return; }
 
       const stats = lineStats[key] || { cycleTime: '-', trp: '-', shiftDay: '-', annualCapacity: 0 };
+      console.log('[DMF DEBUG] dmfLine=', dmfLine, '| key=', key, '| stats=', JSON.stringify(stats));
+      console.log('[DMF DEBUG] lineStats keys=', Object.keys(lineStats).filter(k => k.startsWith('DMF')));
       const cap   = stats.annualCapacity;
 
       let trpFormatted = stats.trp;
