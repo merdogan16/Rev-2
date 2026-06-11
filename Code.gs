@@ -182,7 +182,7 @@ function getLayoutImage(fileId) {
 }
 
 function getSpreadsheetData() {
-  const CACHE_KEY = 'spreadsheet_data_v14';
+  const CACHE_KEY = 'spreadsheet_data_v15';
   const cache = CacheService.getScriptCache();
   const cached = cache.get(CACHE_KEY);
   if (cached) {
