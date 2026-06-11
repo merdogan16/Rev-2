@@ -437,3 +437,25 @@ function getLineStats() {
     return {};
   }
 }
+
+function debugDMFRows() {
+  const summarySsId = '1SmV8rQitLQaUdpCmpUqL_xNR0v4G8nZHNXwK_BeH354';
+  const sheet = SpreadsheetApp.openById(summarySsId).getSheetByName('MTP_summary');
+  const lastRow = sheet.getLastRow();
+  const allData = sheet.getRange(2, 1, lastRow - 1, 14).getValues();
+
+  Logger.log('=== MTP_summary içinde DMF key üreten TÜM satırlar ===');
+  allData.forEach((row, idx) => {
+    const rowNum = idx + 2;
+    const rawName = String(row[4] || row[3] || '');
+    const key = rawName.replace(/[^A-Z0-9]/gi, '').toUpperCase();
+    if (key.startsWith('DMF')) {
+      Logger.log('Satır ' + rowNum + ': D=' + row[3] + ' E=' + row[4] + ' key=' + key +
+        ' CT=' + row[6] + ' TRP=' + row[7] + ' SD=' + row[8] + ' Cap=' + row[13]);
+    }
+  });
+  Logger.log('=== Explicit blok (D70:N73) ===');
+  sheet.getRange(70, 4, 4, 11).getValues().forEach((r, i) => {
+    Logger.log('Satır ' + (70+i) + ': D=' + r[0] + ' CT=' + r[3] + ' TRP=' + r[4] + ' Cap=' + r[10]);
+  });
+}
