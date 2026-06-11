@@ -182,7 +182,7 @@ function getLayoutImage(fileId) {
 }
 
 function getSpreadsheetData() {
-  const CACHE_KEY = 'spreadsheet_data_v15';
+  const CACHE_KEY = 'spreadsheet_data_v16';
   const cache = CacheService.getScriptCache();
   const cached = cache.get(CACHE_KEY);
   if (cached) {
@@ -229,11 +229,12 @@ function getSpreadsheetData() {
         const name = String(r[0] || '').trim();  // D sütunu (hat adı)
         if (name) {
           const key = name.replace(/[^A-Z0-9]/gi, '').toUpperCase();
-          if (!lineStatsMap[key]) lineStatsMap[key] = { cycleTime: '-', trp: '-', shiftDay: '-', annualCapacity: 0 };
-          lineStatsMap[key].cycleTime      = r[3]  || '-';  // G sütunu
-          lineStatsMap[key].trp            = r[4]  || '-';  // H sütunu
-          lineStatsMap[key].shiftDay       = r[5]  || '-';  // I sütunu
-          lineStatsMap[key].annualCapacity = Number(r[10]) || 0;  // N sütunu
+          lineStatsMap[key] = {
+            cycleTime:      r[3]  || '-',  // G sütunu
+            trp:            r[4]  || '-',  // H sütunu
+            shiftDay:       r[5]  || '-',  // I sütunu
+            annualCapacity: Number(r[10]) || 0  // N sütunu
+          };
         }
       });
     } catch(e) {}
@@ -245,11 +246,12 @@ function getSpreadsheetData() {
         const name = String(r[0] || '').trim();
         if (name) {
           const key = name.replace(/[^A-Z0-9]/gi, '').toUpperCase();
-          if (!lineStatsMap[key]) lineStatsMap[key] = { cycleTime: '-', trp: '-', shiftDay: '-', annualCapacity: 0 };
-          lineStatsMap[key].cycleTime      = r[3]  || '-';  // G sütunu
-          lineStatsMap[key].trp            = r[4]  || '-';  // H sütunu
-          lineStatsMap[key].shiftDay       = r[5]  || '-';  // I sütunu
-          lineStatsMap[key].annualCapacity = Number(r[10]) || 0;  // N sütunu
+          lineStatsMap[key] = {
+            cycleTime:      r[3]  || '-',  // G sütunu
+            trp:            r[4]  || '-',  // H sütunu
+            shiftDay:       r[5]  || '-',  // I sütunu
+            annualCapacity: Number(r[10]) || 0  // N sütunu
+          };
         }
       });
     } catch(e) {}
