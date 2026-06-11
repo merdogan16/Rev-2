@@ -192,19 +192,16 @@ function getSpreadsheetData() {
       const summarySs = SpreadsheetApp.openById('1SmV8rQitLQaUdpCmpUqL_xNR0v4G8nZHNXwK_BeH354');
       const summarySheet = summarySs.getSheetByName('MTP_summary');
       if (summarySheet && result.lineStats) {
-        [[70, 4], [75, 4]].forEach(([startRow, startCol]) => {
+        const lineNames = [['DMF1','DMF2','DMF3','DMF4'], ['PFW1','PFW2','PFW3','PFW4']];
+        [70, 75].forEach((startRow, gi) => {
           try {
-            summarySheet.getRange(startRow, startCol, 4, 11).getValues().forEach(r => {
-              const name = String(r[0] || '').trim();
-              if (name) {
-                const key = name.replace(/[^A-Z0-9]/gi, '').toUpperCase();
-                result.lineStats[key] = {
-                  cycleTime:      r[3]  || '-',
-                  trp:            r[4]  || '-',
-                  shiftDay:       r[5]  || '-',
-                  annualCapacity: Number(r[10]) || 0
-                };
-              }
+            summarySheet.getRange(startRow, 7, 4, 8).getValues().forEach((r, i) => {
+              result.lineStats[lineNames[gi][i]] = {
+                cycleTime:      r[0] || '-',
+                trp:            r[1] || '-',
+                shiftDay:       r[2] || '-',
+                annualCapacity: Number(r[7]) || 0
+              };
             });
           } catch(e) {}
         });
@@ -248,39 +245,21 @@ function getSpreadsheetData() {
       }
     });
 
-    // DMF hat istatistiklerini D70:N73'ten doğrudan oku (generic scan'i override eder)
-    try {
-      const dmfCapRaw = summarySheet.getRange(70, 4, 4, 11).getValues(); // D70:N73
-      dmfCapRaw.forEach(r => {
-        const name = String(r[0] || '').trim();  // D sütunu (hat adı)
-        if (name) {
-          const key = name.replace(/[^A-Z0-9]/gi, '').toUpperCase();
-          lineStatsMap[key] = {
-            cycleTime:      r[3]  || '-',  // G sütunu
-            trp:            r[4]  || '-',  // H sütunu
-            shiftDay:       r[5]  || '-',  // I sütunu
-            annualCapacity: Number(r[10]) || 0  // N sütunu
+    // DMF/PFW hat istatistiklerini satır pozisyonuna göre oku (G:N = col7, 8 sütun)
+    // Satır 70=DMF1, 71=DMF2, 72=DMF3, 73=DMF4 | Satır 75=PFW1, 76=PFW2, 77=PFW3, 78=PFW4
+    const fixedLineNames = [['DMF1','DMF2','DMF3','DMF4'], ['PFW1','PFW2','PFW3','PFW4']];
+    [70, 75].forEach((startRow, gi) => {
+      try {
+        summarySheet.getRange(startRow, 7, 4, 8).getValues().forEach((r, i) => {
+          lineStatsMap[fixedLineNames[gi][i]] = {
+            cycleTime:      r[0] || '-',  // G
+            trp:            r[1] || '-',  // H
+            shiftDay:       r[2] || '-',  // I
+            annualCapacity: Number(r[7]) || 0  // N
           };
-        }
-      });
-    } catch(e) {}
-
-    // PFW hat istatistiklerini D75:N78'ten doğrudan oku
-    try {
-      const pfwStatRaw = summarySheet.getRange(75, 4, 4, 11).getValues(); // D75:N78
-      pfwStatRaw.forEach(r => {
-        const name = String(r[0] || '').trim();
-        if (name) {
-          const key = name.replace(/[^A-Z0-9]/gi, '').toUpperCase();
-          lineStatsMap[key] = {
-            cycleTime:      r[3]  || '-',  // G sütunu
-            trp:            r[4]  || '-',  // H sütunu
-            shiftDay:       r[5]  || '-',  // I sütunu
-            annualCapacity: Number(r[10]) || 0  // N sütunu
-          };
-        }
-      });
-    } catch(e) {}
+        });
+      } catch(e) {}
+    });
 
     // 2. DIAPHRAGM FIRIN VERİLERİ
     const diagLastRow = Math.max(diagSheet.getLastRow(), 1);
@@ -418,18 +397,15 @@ function getLineStats() {
   try {
     const sheet = SpreadsheetApp.openById(summarySsId).getSheetByName('MTP_summary');
     const stats = {};
-    [[70, 4], [75, 4]].forEach(function(pair) {
-      sheet.getRange(pair[0], pair[1], 4, 11).getValues().forEach(function(r) {
-        const name = String(r[0] || '').trim();
-        if (name) {
-          const key = name.replace(/[^A-Z0-9]/gi, '').toUpperCase();
-          stats[key] = {
-            cycleTime:      r[3]  || '-',
-            trp:            r[4]  || '-',
-            shiftDay:       r[5]  || '-',
-            annualCapacity: Number(r[10]) || 0
-          };
-        }
+    const names = [['DMF1','DMF2','DMF3','DMF4'], ['PFW1','PFW2','PFW3','PFW4']];
+    [70, 75].forEach(function(startRow, gi) {
+      sheet.getRange(startRow, 7, 4, 8).getValues().forEach(function(r, i) {
+        stats[names[gi][i]] = {
+          cycleTime:      r[0] || '-',
+          trp:            r[1] || '-',
+          shiftDay:       r[2] || '-',
+          annualCapacity: Number(r[7]) || 0
+        };
       });
     });
     return stats;
