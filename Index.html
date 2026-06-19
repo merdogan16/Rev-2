@@ -177,6 +177,13 @@
 <body class="min-h-screen text-slate-800 dark:text-slate-100 font-sans p-3 md:p-8">
 
   <div id="topControls" class="flex items-center gap-2">
+    <div id="topSearchWrap" class="relative w-36 sm:w-52 md:w-64">
+      <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+      </div>
+      <input type="text" id="compSearch" data-i18n-placeholder="searchPlaceholder" data-i18n-aria="searchLabel" placeholder="Örn: 58, VD veya HD" class="w-full pl-9 pr-3 py-2 bg-white/70 dark:bg-slate-800/90 backdrop-blur-sm border border-slate-200 dark:border-slate-700 rounded-full text-sm outline-none shadow-sm placeholder-slate-400 hover:bg-white dark:hover:bg-slate-700 focus:bg-white dark:focus:bg-slate-700 transition-all" autocomplete="off">
+      <div id="recentSearchDropdown" class="hidden absolute left-0 right-0 top-full mt-1 bg-white dark:bg-slate-800 border border-valeo-cardBorder dark:border-slate-700 rounded-lg shadow-lg z-50 overflow-hidden"></div>
+    </div>
     <button id="langToggle" class="px-3 py-1.5 rounded-full bg-white/70 dark:bg-slate-800/90 backdrop-blur-sm border border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-600 dark:text-slate-300 outline-none shadow-sm hover:bg-white dark:hover:bg-slate-700 transition-all" aria-label="Dil değiştir / Switch language">
       <span id="langLabel">EN</span>
     </button>
@@ -223,21 +230,6 @@
           <select id="kitSelect" class="w-full bg-white/60 dark:bg-slate-800 border border-valeo-cardBorder dark:border-slate-700 rounded-lg p-3 text-base outline-none shadow-sm backdrop-blur-sm">
             <option value="">Yükleniyor...</option>
           </select>
-        </div>
-
-        <div class="flex items-center justify-center py-2">
-          <span data-i18n="or" class="text-sm text-slate-400 font-bold uppercase">VEYA</span>
-        </div>
-
-        <div class="flex flex-col gap-2">
-          <label for="compSearch" data-i18n="searchLabel" class="text-sm font-bold text-slate-700 dark:text-slate-300">Arama (Kit, Komponent, Hat)</label>
-          <div class="relative">
-            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-            </div>
-            <input type="text" id="compSearch" data-i18n-placeholder="searchPlaceholder" placeholder="Örn: 58, VD veya HD" class="w-full pl-10 pr-3 py-3 bg-white/60 dark:bg-slate-800 border border-valeo-cardBorder dark:border-slate-700 rounded-lg text-base outline-none shadow-sm placeholder-slate-400 backdrop-blur-sm" autocomplete="off">
-            <div id="recentSearchDropdown" class="hidden absolute left-0 right-0 top-full mt-1 bg-white dark:bg-slate-800 border border-valeo-cardBorder dark:border-slate-700 rounded-lg shadow-lg z-50 overflow-hidden"></div>
-          </div>
         </div>
 
         <!-- Hızlı Bağlantılar -->
@@ -1126,10 +1118,6 @@
       if (e.key === '/' && !inInput) {
         e.preventDefault();
         els.compSearch.focus();
-        if (window.innerWidth < 1024) {
-          document.getElementById('searchPanel').classList.remove('hidden');
-          document.getElementById('sidebarChevron').style.transform = 'rotate(180deg)';
-        }
       }
       if (e.key === 'Escape') {
         const recentEl = document.getElementById('recentSearchDropdown');
