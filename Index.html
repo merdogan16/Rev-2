@@ -722,6 +722,8 @@
         kitRef:               'Kit Referansı',
         kitVariantTotal:      'Tüm Varyantlar — Toplam',
         variantCount:         (n) => `${n} varyant`,
+        refTotal:             'Toplam Sipariş Adedi',
+        kitCount:             (n) => `${n} kit`,
         noResults:            'Eşleşen kayıt veya üretim hattı bulunamadı.',
         resultsForPrefix:     '',
         resultsForSuffix:     ' için sonuçlar',
@@ -821,6 +823,8 @@
         kitRef:               'Kit Reference',
         kitVariantTotal:      'All Variants — Total',
         variantCount:         (n) => `${n} variant${n !== 1 ? 's' : ''}`,
+        refTotal:             'Total Order Quantity',
+        kitCount:             (n) => `${n} kit${n !== 1 ? 's' : ''}`,
         noResults:            'No matching records or production lines found.',
         resultsForPrefix:     'Results for ',
         resultsForSuffix:     '',
@@ -1647,34 +1651,55 @@
       } else if (resultsArray.length === 0) {
         resultsContainer.innerHTML = '';
       } else {
-        // Kit variant aggregate: if 2+ Kit results share search term as prefix, show a total card
+        // Aranan referansın toplamı: bir komponent referansı (PPCA/Disc/DMF/Cover/Diaphragm) birden çok
+        // kitte kullanılıyorsa o referansın tüm kitlerdeki sipariş adetlerini yıl bazında toplayıp tek kartta göster
+        let rv26 = 0, rv27 = 0, rv28 = 0, rv29 = 0, rv30 = 0;
+        const refKits = new Set();
+        globalData.forEach(d => {
+          const hit = [d.ppca, d.disk, d.dmf, d.cover, d.diaphragm]
+            .some(x => x && String(x).toLowerCase().includes(termLower));
+          if (hit) {
+            rv26 += d.vol26; rv27 += d.vol27; rv28 += d.vol28; rv29 += d.vol29; rv30 += d.vol30;
+            refKits.add(d.kit);
+          }
+        });
+        const showRefTotal = refKits.size >= 2 && (rv26 + rv27 + rv28 + rv29 + rv30) > 0;
+
         const kitPrefixItems = resultsArray.filter(item => item.type === 'Kit' && String(item.value || '').toLowerCase().startsWith(termLower));
-        if (kitPrefixItems.length >= 2) {
-          let tv26 = 0, tv27 = 0, tv28 = 0, tv29 = 0, tv30 = 0;
+        let tv26 = 0, tv27 = 0, tv28 = 0, tv29 = 0, tv30 = 0;
+        if (!showRefTotal && kitPrefixItems.length >= 2) {
           globalData.forEach(d => {
             if (String(d.kit || '').toLowerCase().startsWith(termLower)) {
               tv26 += d.vol26; tv27 += d.vol27; tv28 += d.vol28; tv29 += d.vol29; tv30 += d.vol30;
             }
           });
-          if (tv26 + tv27 + tv28 + tv29 + tv30 > 0) {
-            const aggCard = document.createElement('div');
-            aggCard.className = 'col-span-full bg-valeo-cardInner/70 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl p-5 border-2 border-valeo-blue/40 dark:border-valeo-blue/30 shadow-sm mb-1';
-            aggCard.innerHTML = `
-              <div class="flex flex-wrap items-center gap-3 mb-4">
-                <span class="px-3 py-1 text-sm rounded-full font-bold bg-valeo-blue/10 dark:bg-valeo-blue/20 text-valeo-blue dark:text-blue-300 border border-valeo-blue/20 dark:border-valeo-blue/40">${t('kitVariantTotal')}</span>
-                <span class="text-xl font-black text-slate-800 dark:text-white">${escapeHtml(term.toUpperCase())}</span>
-                <span class="text-xs text-slate-400 font-medium">${t('variantCount')(kitPrefixItems.length)}</span>
-              </div>
-              <div class="grid grid-cols-5 gap-1 sm:gap-2 text-center">
-                ${[['2027',tv26],['2028',tv27],['2029',tv28],['2030',tv29],['2031',tv30]].map(([yr,val]) =>
-                  `<div class="bg-valeo-blue/5 dark:bg-valeo-blue/10 rounded-lg p-1.5 sm:p-3 border border-valeo-blue/15 dark:border-valeo-blue/20">
-                    <span class="block text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 font-bold mb-0.5">${yr}</span>
-                    <span class="font-black text-xs sm:text-base text-valeo-blue dark:text-blue-300">${fmt(val)}</span>
-                  </div>`
-                ).join('')}
-              </div>`;
-            resultsContainer.appendChild(aggCard);
-          }
+        }
+        const showKitPrefix = !showRefTotal && kitPrefixItems.length >= 2 && (tv26 + tv27 + tv28 + tv29 + tv30) > 0;
+
+        const agg = showRefTotal
+          ? { label: t('refTotal'),        count: t('kitCount')(refKits.size),             vols: [rv26, rv27, rv28, rv29, rv30] }
+          : showKitPrefix
+          ? { label: t('kitVariantTotal'), count: t('variantCount')(kitPrefixItems.length), vols: [tv26, tv27, tv28, tv29, tv30] }
+          : null;
+
+        if (agg) {
+          const aggCard = document.createElement('div');
+          aggCard.className = 'col-span-full bg-valeo-cardInner/70 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl p-5 border-2 border-valeo-blue/40 dark:border-valeo-blue/30 shadow-sm mb-1';
+          aggCard.innerHTML = `
+            <div class="flex flex-wrap items-center gap-3 mb-4">
+              <span class="px-3 py-1 text-sm rounded-full font-bold bg-valeo-blue/10 dark:bg-valeo-blue/20 text-valeo-blue dark:text-blue-300 border border-valeo-blue/20 dark:border-valeo-blue/40">${agg.label}</span>
+              <span class="text-xl font-black text-slate-800 dark:text-white">${escapeHtml(term.toUpperCase())}</span>
+              <span class="text-xs text-slate-400 font-medium">${agg.count}</span>
+            </div>
+            <div class="grid grid-cols-5 gap-1 sm:gap-2 text-center">
+              ${[['2027',agg.vols[0]],['2028',agg.vols[1]],['2029',agg.vols[2]],['2030',agg.vols[3]],['2031',agg.vols[4]]].map(([yr,val]) =>
+                `<div class="bg-valeo-blue/5 dark:bg-valeo-blue/10 rounded-lg p-1.5 sm:p-3 border border-valeo-blue/15 dark:border-valeo-blue/20">
+                  <span class="block text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 font-bold mb-0.5">${yr}</span>
+                  <span class="font-black text-xs sm:text-base text-valeo-blue dark:text-blue-300">${fmt(val)}</span>
+                </div>`
+              ).join('')}
+            </div>`;
+          resultsContainer.appendChild(aggCard);
         }
 
         resultsArray.forEach(item => {
