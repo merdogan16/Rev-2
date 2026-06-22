@@ -700,61 +700,6 @@
     };
     let diskGroupFilter = null;
 
-    const COUNTRY_ISO2 = {
-      'turkiye':'tr','turkey':'tr','tr':'tr',
-      'almanya':'de','germany':'de','deutschland':'de','de':'de',
-      'fransa':'fr','france':'fr','fr':'fr',
-      'italya':'it','italy':'it','italia':'it','it':'it',
-      'ispanya':'es','spain':'es','espana':'es','es':'es',
-      'ingiltere':'gb','birlesik krallik':'gb','united kingdom':'gb','uk':'gb','gb':'gb',
-      'amerika':'us','abd':'us','united states':'us','usa':'us','us':'us',
-      'cin':'cn','china':'cn','cn':'cn',
-      'hindistan':'in','india':'in','in':'in',
-      'japonya':'jp','japan':'jp','jp':'jp',
-      'guney kore':'kr','south korea':'kr','korea':'kr','kr':'kr',
-      'brezilya':'br','brazil':'br','br':'br',
-      'rusya':'ru','russia':'ru','ru':'ru',
-      'polonya':'pl','poland':'pl','pl':'pl',
-      'cekya':'cz','cek cumhuriyeti':'cz','czech republic':'cz','czechia':'cz','cz':'cz',
-      'romanya':'ro','romania':'ro','ro':'ro',
-      'isvec':'se','sweden':'se','se':'se',
-      'slovakya':'sk','slovakia':'sk','sk':'sk',
-      'macaristan':'hu','hungary':'hu','hu':'hu',
-      'meksika':'mx','mexico':'mx','mx':'mx',
-      'hollanda':'nl','netherlands':'nl','nl':'nl',
-      'belcika':'be','belgium':'be','be':'be',
-      'avusturya':'at','austria':'at','at':'at',
-      'portekiz':'pt','portugal':'pt','pt':'pt',
-      'isvicre':'ch','switzerland':'ch','ch':'ch',
-      'iran':'ir','ir':'ir',
-      'fas':'ma','morocco':'ma','ma':'ma',
-      'tunus':'tn','tunisia':'tn','tn':'tn',
-      'guney afrika':'za','south africa':'za','za':'za',
-      'ukrayna':'ua','ukraine':'ua','ua':'ua',
-      'bulgaristan':'bg','bulgaria':'bg','bg':'bg',
-      'sirbistan':'rs','serbia':'rs','rs':'rs',
-      'yunanistan':'gr','greece':'gr','gr':'gr',
-      'kanada':'ca','canada':'ca','ca':'ca',
-      'avustralya':'au','australia':'au','au':'au',
-      'tayland':'th','thailand':'th','th':'th',
-      'endonezya':'id','indonesia':'id','id':'id',
-      'vietnam':'vn','vn':'vn',
-      'misir':'eg','egypt':'eg','eg':'eg',
-      'finlandiya':'fi','finland':'fi','fi':'fi',
-      'danimarka':'dk','denmark':'dk','dk':'dk',
-      'norvec':'no','norway':'no','no':'no',
-      'slovenya':'si','slovenia':'si','si':'si',
-      'hirvatistan':'hr','croatia':'hr','hr':'hr'
-    };
-    function countryFlag(raw) {
-      const ascii = String(raw || '').trim().toLowerCase()
-        .normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[\u0131]/g, 'i');
-      if (!ascii) return null;
-      const iso = COUNTRY_ISO2[ascii] || (/^[a-z]{2}$/.test(ascii) ? ascii : null);
-      if (!iso) return null;
-      return { iso, url: `https://flagcdn.com/24x18/${iso}.png`, url2x: `https://flagcdn.com/48x36/${iso}.png` };
-    }
-
     const i18n = {
       tr: {
         explore:              'Veri Keşfi',
@@ -1808,17 +1753,15 @@
         ccEl.textContent = data.customer;
         ccEl.onclick = () => { els.compSearch.value = data.customer; els.kitSelect.value = ''; renderCompSearchResults(data.customer.toLowerCase()); closeSidebarOnMobile(); };
         cnEl.textContent = data.customerName || '';
-        const flag = countryFlag(data.customerCountry);
+        const flag = data.customerFlag || '';
         if (flag) {
-          flagEl.src = flag.url;
-          flagEl.srcset = `${flag.url} 1x, ${flag.url2x} 2x`;
-          flagEl.alt = data.customerCountry;
-          flagEl.title = data.customerCountry;
+          flagEl.src = flag;
+          flagEl.alt = data.customerCountry || '';
+          flagEl.title = data.customerCountry || '';
           flagEl.classList.remove('hidden');
         } else {
           flagEl.classList.add('hidden');
           flagEl.removeAttribute('src');
-          flagEl.removeAttribute('srcset');
         }
         custRow.classList.remove('hidden');
       } else {

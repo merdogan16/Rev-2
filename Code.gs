@@ -182,7 +182,7 @@ function getLayoutImage(fileId) {
 }
 
 function getSpreadsheetData() {
-  const CACHE_KEY = 'spreadsheet_data_v20';
+  const CACHE_KEY = 'spreadsheet_data_v21';
   const cache = CacheService.getScriptCache();
   const cached = cache.get(CACHE_KEY);
   if (cached) {
@@ -362,6 +362,7 @@ function getSpreadsheetData() {
         customer: String(row[6]  || '').trim(),     // G sütunu — Müşteri bilgisi
         customerName: String(row[7]  || '').trim(), // H sütunu — Müşteri tanımı
         customerCountry: String(row[13] || '').trim(), // N sütunu — Müşteri ülkesi
+        customerFlag: countryFlagUrl(row[13]),         // N sütunundan üretilen bayrak görseli
         vol26: Number(row[91]) || 0,   // CN — 2027
         vol27: Number(row[92]) || 0,   // CO — 2028
         vol28: Number(row[93]) || 0,   // CP — 2029
@@ -414,8 +415,63 @@ function getLineStats() {
 }
 
 function clearCache() {
-  CacheService.getScriptCache().remove('spreadsheet_data_v20');
+  CacheService.getScriptCache().remove('spreadsheet_data_v21');
   Logger.log('Cache temizlendi. Bir sonraki web app isteği sheet\'ten taze veri okuyacak.');
+}
+
+const COUNTRY_ISO2 = {
+  'turkiye':'tr','turkey':'tr','tr':'tr',
+  'almanya':'de','germany':'de','deutschland':'de','de':'de',
+  'fransa':'fr','france':'fr','fr':'fr',
+  'italya':'it','italy':'it','italia':'it','it':'it',
+  'ispanya':'es','spain':'es','espana':'es','es':'es',
+  'ingiltere':'gb','birlesik krallik':'gb','united kingdom':'gb','uk':'gb','gb':'gb',
+  'amerika':'us','abd':'us','united states':'us','usa':'us','us':'us',
+  'cin':'cn','china':'cn','cn':'cn',
+  'hindistan':'in','india':'in','in':'in',
+  'japonya':'jp','japan':'jp','jp':'jp',
+  'guney kore':'kr','south korea':'kr','korea':'kr','kr':'kr',
+  'brezilya':'br','brazil':'br','br':'br',
+  'rusya':'ru','russia':'ru','ru':'ru',
+  'polonya':'pl','poland':'pl','pl':'pl',
+  'cekya':'cz','cek cumhuriyeti':'cz','czech republic':'cz','czechia':'cz','cz':'cz',
+  'romanya':'ro','romania':'ro','ro':'ro',
+  'isvec':'se','sweden':'se','se':'se',
+  'slovakya':'sk','slovakia':'sk','sk':'sk',
+  'macaristan':'hu','hungary':'hu','hu':'hu',
+  'meksika':'mx','mexico':'mx','mx':'mx',
+  'hollanda':'nl','netherlands':'nl','nl':'nl',
+  'belcika':'be','belgium':'be','be':'be',
+  'avusturya':'at','austria':'at','at':'at',
+  'portekiz':'pt','portugal':'pt','pt':'pt',
+  'isvicre':'ch','switzerland':'ch','ch':'ch',
+  'iran':'ir','ir':'ir',
+  'fas':'ma','morocco':'ma','ma':'ma',
+  'tunus':'tn','tunisia':'tn','tn':'tn',
+  'guney afrika':'za','south africa':'za','za':'za',
+  'ukrayna':'ua','ukraine':'ua','ua':'ua',
+  'bulgaristan':'bg','bulgaria':'bg','bg':'bg',
+  'sirbistan':'rs','serbia':'rs','rs':'rs',
+  'yunanistan':'gr','greece':'gr','gr':'gr',
+  'kanada':'ca','canada':'ca','ca':'ca',
+  'avustralya':'au','australia':'au','au':'au',
+  'tayland':'th','thailand':'th','th':'th',
+  'endonezya':'id','indonesia':'id','id':'id',
+  'vietnam':'vn','vn':'vn',
+  'misir':'eg','egypt':'eg','eg':'eg',
+  'finlandiya':'fi','finland':'fi','fi':'fi',
+  'danimarka':'dk','denmark':'dk','dk':'dk',
+  'norvec':'no','norway':'no','no':'no',
+  'slovenya':'si','slovenia':'si','si':'si',
+  'hirvatistan':'hr','croatia':'hr','hr':'hr'
+};
+
+function countryFlagUrl(raw) {
+  const ascii = String(raw || '').trim().toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[\u0131]/g, 'i');
+  if (!ascii) return '';
+  const iso = COUNTRY_ISO2[ascii] || (/^[a-z]{2}$/.test(ascii) ? ascii : '');
+  return iso ? ('https://flagcdn.com/48x36/' + iso + '.png') : '';
 }
 
 function debugDMFRows() {
