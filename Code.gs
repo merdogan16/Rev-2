@@ -182,7 +182,7 @@ function getLayoutImage(fileId) {
 }
 
 function getSpreadsheetData() {
-  const CACHE_KEY = 'spreadsheet_data_v18';
+  const CACHE_KEY = 'spreadsheet_data_v19';
   const cache = CacheService.getScriptCache();
   const cached = cache.get(CACHE_KEY);
   if (cached) {
@@ -210,7 +210,7 @@ function getSpreadsheetData() {
     } catch (e) { /* cache bozuk, devam et */ }
   }
 
-  const mainSsId = '1k3Hkb9F0vwpXXR6un2CPWzShol0bjTM2TZXITt94pI0';
+  const mainSsId = '1c3ObCQTHSi7HBrxDcNWbTA4TRHJiBnRfIpWbevtAemQ';
   const summarySsId = '1SmV8rQitLQaUdpCmpUqL_xNR0v4G8nZHNXwK_BeH354';
 
   try {
@@ -322,7 +322,7 @@ function getSpreadsheetData() {
     const mtpRaw = mtpSheet.getRange(8, 1, mtpLastRow - 7, 100).getValues();
 
     const formattedData = mtpRaw.map(row => {
-      const rawDiaphragm = String(row[18] || '').trim();  // S sütunu
+      const rawDiaphragm = String(row[19] || '').trim();  // T sütunu
       let diagFurnaceInfo = '-';
       let diagLines = [];
       if (rawDiaphragm) {
@@ -339,35 +339,33 @@ function getSpreadsheetData() {
         }
       }
 
-      const kitRef = String(row[13] || '').trim();
+      const kitRef = String(row[14] || '').trim();  // O sütunu
       const productFamily = String(row[8] || '').trim().toUpperCase();
       const eDriveLine = productFamily === 'A05' ? (refToEDriveLine[kitRef.toUpperCase()] || 'E-Drive') : '';
 
       return {
         kit: kitRef,
-        customerType: String(row[5]  || '').trim(),
-        ppca: String(row[14] || '').trim(),
-        ppcaLine: String(row[15] || '').trim(),
-        cover: String(row[16] || '').trim(),
-        coverLine: String(row[17] || '').trim(),  // R sütunu
-        diaphragm: rawDiaphragm,
+        ppca: String(row[15] || '').trim(),       // P sütunu
+        ppcaLine: String(row[16] || '').trim(),   // Q sütunu
+        cover: String(row[17] || '').trim(),      // R sütunu
+        coverLine: String(row[18] || '').trim(),  // S sütunu
+        diaphragm: rawDiaphragm,                  // T sütunu
         diaphragmFurnace: diagFurnaceInfo,
         diaphragmLines: diagLines,
-        disk: String(row[19] || '').trim(),     // T sütunu
-        diskLine: String(row[20] || '').trim(), // U sütunu
-        diskFamilyGroup: String(row[27] || '').trim(),
-        dmf: String(row[21] || '').trim(),
-        dmfLine: String(row[22] || '').trim(),
+        disk: String(row[20] || '').trim(),       // U sütunu
+        diskLine: String(row[21] || '').trim(),   // V sütunu
+        diskFamilyGroup: String(row[28] || '').trim(),  // AC sütunu
+        dmf: String(row[22] || '').trim(),        // W sütunu
+        dmfLine: String(row[23] || '').trim(),    // X sütunu
         eDriveLine: eDriveLine,
-        familyGroup: String(row[26] || '').trim(),
-        customer: String(row[1]  || '').trim(),
-        customerDetail: String(row[2]  || '').trim(),
-        customerName: String(row[3]  || '').trim(),
-        vol26: Number(row[90]) || 0,
-        vol27: Number(row[91]) || 0,
-        vol28: Number(row[92]) || 0,
-        vol29: Number(row[93]) || 0,
-        vol30: Number(row[94]) || 0
+        familyGroup: String(row[27] || '').trim(),  // AB sütunu
+        customer: String(row[6]  || '').trim(),     // G sütunu — Müşteri bilgisi
+        customerName: String(row[7]  || '').trim(), // H sütunu — Müşteri tanımı
+        vol26: Number(row[91]) || 0,   // CN — 2027
+        vol27: Number(row[92]) || 0,   // CO — 2028
+        vol28: Number(row[93]) || 0,   // CP — 2029
+        vol29: Number(row[94]) || 0,   // CQ — 2030
+        vol30: Number(row[95]) || 0    // CR — 2031
       };
     }).filter(item => item.kit !== '');
 
@@ -415,7 +413,7 @@ function getLineStats() {
 }
 
 function clearCache() {
-  CacheService.getScriptCache().remove('spreadsheet_data_v18');
+  CacheService.getScriptCache().remove('spreadsheet_data_v19');
   Logger.log('Cache temizlendi. Bir sonraki web app isteği sheet\'ten taze veri okuyacak.');
 }
 
