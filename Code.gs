@@ -182,7 +182,7 @@ function getLayoutImage(fileId) {
 }
 
 function getSpreadsheetData() {
-  const CACHE_KEY = 'spreadsheet_data_v19';
+  const CACHE_KEY = 'spreadsheet_data_v20';
   const cache = CacheService.getScriptCache();
   const cached = cache.get(CACHE_KEY);
   if (cached) {
@@ -361,6 +361,7 @@ function getSpreadsheetData() {
         familyGroup: String(row[27] || '').trim(),  // AB sütunu
         customer: String(row[6]  || '').trim(),     // G sütunu — Müşteri bilgisi
         customerName: String(row[7]  || '').trim(), // H sütunu — Müşteri tanımı
+        customerCountry: String(row[13] || '').trim(), // N sütunu — Müşteri ülkesi
         vol26: Number(row[91]) || 0,   // CN — 2027
         vol27: Number(row[92]) || 0,   // CO — 2028
         vol28: Number(row[93]) || 0,   // CP — 2029
@@ -413,7 +414,7 @@ function getLineStats() {
 }
 
 function clearCache() {
-  CacheService.getScriptCache().remove('spreadsheet_data_v19');
+  CacheService.getScriptCache().remove('spreadsheet_data_v20');
   Logger.log('Cache temizlendi. Bir sonraki web app isteği sheet\'ten taze veri okuyacak.');
 }
 
