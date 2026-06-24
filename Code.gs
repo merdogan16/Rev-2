@@ -182,7 +182,7 @@ function getLayoutImage(fileId) {
 }
 
 function getSpreadsheetData() {
-  const CACHE_KEY = 'spreadsheet_data_v24';
+  const CACHE_KEY = 'spreadsheet_data_v25';
   const cache = CacheService.getScriptCache();
   const cached = cache.get(CACHE_KEY);
   if (cached) {
@@ -221,14 +221,17 @@ function getSpreadsheetData() {
     
     summaryRaw.forEach((row) => {
       const rawName = String(row[4] || row[3] || '');
-      const lineName = rawName.replace(/[^A-Z0-9]/gi, '').toUpperCase();
-      if (lineName) {
-        lineStatsMap[lineName] = {
+      const fullKey = rawName.replace(/[^A-Z0-9]/gi, '').toUpperCase();
+      const stripKey = normLineName(rawName);
+      if (fullKey) {
+        const val = {
           cycleTime: row[6] || '-',
           trp: row[7] || '-',
           shiftDay: row[8] || '-',
           annualCapacity: Number(row[13]) || 0
         };
+        lineStatsMap[fullKey] = val;
+        if (stripKey && stripKey !== fullKey) lineStatsMap[stripKey] = val;
       }
     });
 
@@ -366,6 +369,11 @@ function getSpreadsheetData() {
   }
 }
 
+// Hat adını normalize eder; baştaki "VD03 " gibi istasyon kodunu atar (MTP_summary'de isimler "VD03 DMF1" formatında)
+function normLineName(raw) {
+  return String(raw || '').replace(/^\s*VD\s*\d+\s*/i, '').replace(/[^A-Z0-9]/gi, '').toUpperCase();
+}
+
 // DMF/PFW hat istatistikleri: önce isimle (DMF1-4 / PFW1-4), bulunamazsa eski sabit satırlardan (70-73 / 75-78)
 function readDmfPfwStats(sheet) {
   const stats = {};
@@ -376,8 +384,8 @@ function readDmfPfwStats(sheet) {
     const lastRow = Math.max(sheet.getLastRow(), 2);
     const data = sheet.getRange(2, 1, lastRow - 1, 14).getValues();
     data.forEach(function(row) {
-      let key = String(row[4] || '').replace(/[^A-Z0-9]/gi, '').toUpperCase();
-      if (!dmfPfwKeys[key]) key = String(row[3] || '').replace(/[^A-Z0-9]/gi, '').toUpperCase();
+      let key = normLineName(row[4]);
+      if (!dmfPfwKeys[key]) key = normLineName(row[3]);
       if (dmfPfwKeys[key]) {
         stats[key] = {
           cycleTime:      row[6] || '-',
@@ -417,7 +425,7 @@ function getLineStats() {
 }
 
 function clearCache() {
-  CacheService.getScriptCache().remove('spreadsheet_data_v24');
+  CacheService.getScriptCache().remove('spreadsheet_data_v25');
   Logger.log('Cache temizlendi. Bir sonraki web app isteği sheet\'ten taze veri okuyacak.');
 }
 
@@ -486,7 +494,7 @@ function debugDMFRows() {
   allData.forEach((row, idx) => {
     const rowNum = idx + 2;
     const rawName = String(row[4] || row[3] || '');
-    const key = rawName.replace(/[^A-Z0-9]/gi, '').toUpperCase();
+    const key = normLineName(rawName);
     if (key.startsWith('DMF')) {
       Logger.log('Satır ' + rowNum + ': D=' + row[3] + ' E=' + row[4] + ' key=' + key +
         ' CT=' + row[6] + ' TRP=' + row[7] + ' SD=' + row[8] + ' Cap=' + row[13]);
