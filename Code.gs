@@ -182,7 +182,7 @@ function getLayoutImage(fileId) {
 }
 
 function getSpreadsheetData() {
-  const CACHE_KEY = 'spreadsheet_data_v25';
+  const CACHE_KEY = 'spreadsheet_data_v26';
   const cache = CacheService.getScriptCache();
   const cached = cache.get(CACHE_KEY);
   if (cached) {
@@ -384,8 +384,7 @@ function readDmfPfwStats(sheet) {
     const lastRow = Math.max(sheet.getLastRow(), 2);
     const data = sheet.getRange(2, 1, lastRow - 1, 14).getValues();
     data.forEach(function(row) {
-      let key = normLineName(row[4]);
-      if (!dmfPfwKeys[key]) key = normLineName(row[3]);
+      const key = normLineName(row[4]);
       if (dmfPfwKeys[key]) {
         stats[key] = {
           cycleTime:      row[6] || '-',
@@ -425,7 +424,7 @@ function getLineStats() {
 }
 
 function clearCache() {
-  CacheService.getScriptCache().remove('spreadsheet_data_v25');
+  CacheService.getScriptCache().remove('spreadsheet_data_v26');
   Logger.log('Cache temizlendi. Bir sonraki web app isteği sheet\'ten taze veri okuyacak.');
 }
 
