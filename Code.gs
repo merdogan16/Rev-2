@@ -182,7 +182,7 @@ function getLayoutImage(fileId) {
 }
 
 function getSpreadsheetData() {
-  const CACHE_KEY = 'spreadsheet_data_v26';
+  const CACHE_KEY = 'spreadsheet_data_v27';
   const cache = CacheService.getScriptCache();
   const cached = cache.get(CACHE_KEY);
   if (cached) {
@@ -277,22 +277,47 @@ function getSpreadsheetData() {
       });
     }
 
-    // 4. E-DRIVE SHEET → hat/ref haritası (formattedData'dan önce oluşturulmalı)
-    const eDriveSheet = mainSs.getSheetByName('E-Drive');
+    // 4. E-DRIVE: ayrı dosyada "e-drive" sayfası → A=referans (A2+), E=hat (E2+)
     const eDriveData = [];
     const refToEDriveLine = {};
-    if (eDriveSheet) {
-      const eDriveLastRow = Math.max(eDriveSheet.getLastRow(), 1);
-      const eDriveRaw = eDriveSheet.getRange(1, 1, eDriveLastRow, 2).getValues();
-      eDriveRaw.forEach(row => {
-        const line = String(row[0] || '').trim();
-        const ref  = String(row[1] || '').trim();
-        if (line && ref) {
-          eDriveData.push({ line, ref });
-          refToEDriveLine[ref.toUpperCase()] = line;
+    try {
+      const eDriveSheet = SpreadsheetApp.openById('1pdPtUMFP8TYK8YCeEzIrSOZxL-Km7FzJBY5CXfLAU14').getSheetByName('e-drive');
+      if (eDriveSheet) {
+        const eDriveLastRow = eDriveSheet.getLastRow();
+        if (eDriveLastRow >= 2) {
+          eDriveSheet.getRange(2, 1, eDriveLastRow - 1, 5).getValues().forEach(row => {
+            const ref  = String(row[0] || '').trim();  // A
+            const line = String(row[4] || '').trim();  // E
+            if (line && ref) {
+              eDriveData.push({ line, ref });
+              refToEDriveLine[ref.toUpperCase()] = line;
+            }
+          });
         }
+      }
+    } catch(e) {}
+
+    // 4b. E-DRIVE hat verileri (MTP_summary satır 100-103): E=hat, G/H/I, N=kapasite, S-W=2027-2031 adet
+    const eDriveLineStats = {};
+    try {
+      summarySheet.getRange(100, 1, 4, 23).getValues().forEach(function(r) {
+        const lineName = String(r[4] || '').trim();   // E
+        const key = normLineName(lineName);
+        if (!key) return;
+        eDriveLineStats[key] = {
+          lineName:       lineName,
+          cycleTime:      r[6]  || '-',           // G
+          trp:            r[7]  || '-',           // H
+          shiftDay:       r[8]  || '-',           // I
+          annualCapacity: Number(r[13]) || 0,     // N
+          v26: Number(r[18]) || 0,   // S — 2027
+          v27: Number(r[19]) || 0,   // T — 2028
+          v28: Number(r[20]) || 0,   // U — 2029
+          v29: Number(r[21]) || 0,   // V — 2030
+          v30: Number(r[22]) || 0    // W — 2031
+        };
       });
-    }
+    } catch(e) {}
 
     // 5. ANA MTP VERİLERİ
     const mtpLastRow = Math.max(mtpSheet.getLastRow(), 8);
@@ -352,6 +377,7 @@ function getSpreadsheetData() {
       globalData: formattedData,
       lineStats: lineStatsMap,
       eDriveData: eDriveData,
+      eDriveLineStats: eDriveLineStats,
       pfwMap: pfwMap
     };
 
@@ -424,7 +450,7 @@ function getLineStats() {
 }
 
 function clearCache() {
-  CacheService.getScriptCache().remove('spreadsheet_data_v26');
+  CacheService.getScriptCache().remove('spreadsheet_data_v27');
   Logger.log('Cache temizlendi. Bir sonraki web app isteği sheet\'ten taze veri okuyacak.');
 }
 
