@@ -595,6 +595,7 @@
 
     // Hat → Drive klasör linki haritası (anahtar: normalize edilmiş hat adı)
     function lineKey(name) { return String(name).replace(/[^A-Z0-9]/gi,'').toUpperCase(); }
+    function lineKeyVD(name) { return String(name).replace(/^\s*VD\s*\d+\s*/i,'').replace(/[^A-Z0-9]/gi,'').toUpperCase(); }
     const LINE_DOCS = {
       [lineKey('TB01 Etcoma')]:       'https://drive.google.com/drive/folders/1GjB6XQ5MiYgUaxnjBTqpIFL1ctN0KfKP',
       [lineKey('TB02 Manuel 1')]:     'https://drive.google.com/drive/folders/1aNO0mmYLL8voPuKqbTtyTmS53Tv9RPtC',
@@ -1376,15 +1377,15 @@
           }
           const _pd = d.dmf ? pfwMap[d.dmf.toUpperCase()] : null;
           if (_pd) {
-            if (((_pd.pfwLine || '').toLowerCase()).includes(termLower) && _pd.pfw) {
+            if (_pd.pfwLine && lineKeyVD(_pd.pfwLine).includes(lineKeyVD(termLower)) && _pd.pfw) {
               if (!uniqueResults.has('PFW-' + _pd.pfw))
                 uniqueResults.set('PFW-' + _pd.pfw, { type: 'PFW', label: `PFW (${_pd.pfwLine})`, value: _pd.pfw, kit: d.kit });
             }
-            if (((_pd.springGuideLine || '').toLowerCase()).includes(termLower) && _pd.springGuide) {
+            if (_pd.springGuideLine && lineKeyVD(_pd.springGuideLine).includes(lineKeyVD(termLower)) && _pd.springGuide) {
               if (!uniqueResults.has('SG-' + _pd.springGuide))
                 uniqueResults.set('SG-' + _pd.springGuide, { type: 'SG', label: `Spring Guide (${_pd.springGuideLine})`, value: _pd.springGuide, kit: d.kit });
             }
-            if (((_pd.drivePlateLine || '').toLowerCase()).includes(termLower) && _pd.drivePlate) {
+            if (_pd.drivePlateLine && lineKeyVD(_pd.drivePlateLine).includes(lineKeyVD(termLower)) && _pd.drivePlate) {
               if (!uniqueResults.has('DP-' + _pd.drivePlate))
                 uniqueResults.set('DP-' + _pd.drivePlate, { type: 'DP', label: `Drive Plate (${_pd.drivePlateLine})`, value: _pd.drivePlate, kit: d.kit });
             }
@@ -1418,7 +1419,7 @@
               const _ln = isAllPFW ? pd.pfwLine : isAllSG ? pd.springGuideLine : pd.drivePlateLine;
               const _tp = isAllPFW ? 'PFW' : isAllSG ? 'SG' : 'DP';
               if (_ln) {
-                const key = _tp + ':' + _ln.replace(/\s+/g, '').toUpperCase();
+                const key = _tp + ':' + lineKeyVD(_ln);
                 if (!lineVolumes.has(key)) lineVolumes.set(key, { type: _tp, lineName: _ln, v26:0, v27:0, v28:0, v29:0, v30:0 });
                 const lv = lineVolumes.get(key); lv.v26+=d.vol26; lv.v27+=d.vol27; lv.v28+=d.vol28; lv.v29+=d.vol29; lv.v30+=d.vol30;
               }
@@ -1445,8 +1446,8 @@
             const _pd2 = pfwMap[d.dmf.toUpperCase()];
             if (_pd2) {
               [['PFW', _pd2.pfwLine], ['SG', _pd2.springGuideLine], ['DP', _pd2.drivePlateLine]].forEach(([tp, ln]) => {
-                if (ln && ln.toLowerCase().includes(termLower)) {
-                  const key = tp + ':' + ln.replace(/\s+/g, '').toUpperCase();
+                if (ln && lineKeyVD(ln).includes(lineKeyVD(termLower))) {
+                  const key = tp + ':' + lineKeyVD(ln);
                   if (!lineVolumes.has(key)) lineVolumes.set(key, { type: tp, lineName: ln, v26:0, v27:0, v28:0, v29:0, v30:0 });
                   const lv = lineVolumes.get(key); lv.v26+=d.vol26; lv.v27+=d.vol27; lv.v28+=d.vol28; lv.v29+=d.vol29; lv.v30+=d.vol30;
                 }
