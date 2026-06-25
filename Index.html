@@ -1635,16 +1635,15 @@
             <div class="grid grid-cols-5 gap-1 sm:gap-2 text-center">
               ${[['2027',lv.v26,0],['2028',lv.v27,1],['2029',lv.v28,2],['2030',lv.v29,3],['2031',lv.v30,4]].map(([yr,val,idx]) => {
                 const pct = lv.type === 'DMF' && lv.occ26 !== undefined ? [lv.occ26,lv.occ27,lv.occ28,lv.occ29,lv.occ30][idx] : capacity > 0 ? (val / capacity) * 100 : -1;
-                const [bg, border, text] = pct >= 115
+                const cp = Math.round(pct);
+                const [bg, border, text] = cp >= 115
                   ? ['bg-red-50 dark:bg-red-900/30',    'border-red-300 dark:border-red-700',    'text-red-600 dark:text-red-400']
-                  : pct >= 105
-                  ? ['bg-orange-50 dark:bg-orange-900/30', 'border-orange-300 dark:border-orange-700', 'text-orange-600 dark:text-orange-400']
-                  : pct >= 98
+                  : cp >= 101
                   ? ['bg-yellow-50 dark:bg-yellow-900/30', 'border-yellow-300 dark:border-yellow-700', 'text-yellow-600 dark:text-yellow-400']
-                  : pct >= 0
+                  : cp >= 0
                   ? ['bg-green-50 dark:bg-green-900/30',  'border-green-300 dark:border-green-700',  'text-green-600 dark:text-green-400']
                   : ['bg-white/60 dark:bg-slate-900/50',  'border-slate-200 dark:border-slate-700',  'text-slate-800 dark:text-slate-200'];
-                const barColor = pct >= 115 ? 'bg-red-500' : pct >= 105 ? 'bg-orange-500' : pct >= 98 ? 'bg-yellow-500' : 'bg-green-500';
+                const barColor = cp >= 115 ? 'bg-red-500' : cp >= 101 ? 'bg-yellow-500' : 'bg-green-500';
                 const pctBadge = pct >= 0 ? `<span class="block text-[10px] sm:text-xs font-bold mt-0.5 ${text}">%${pct.toFixed(0)}</span><div class="mt-1 h-1 rounded-full bg-slate-200/70 dark:bg-slate-600/50"><div class="${barColor} h-1 rounded-full" style="width:${Math.min(pct,100).toFixed(0)}%"></div></div>` : '';
                 return `<div class="${bg} rounded-lg p-1.5 sm:p-3 border ${border} shadow-sm"><span class="block text-[10px] sm:text-xs text-slate-500 font-bold mb-0.5">${yr}</span><span class="font-black text-xs sm:text-base ${text}">${fmt(val)}</span>${pctBadge}</div>`;
               }).join('')}
@@ -2056,10 +2055,10 @@
       const baseColor  = prefix === 'p' ? '#89c341' : '#0072b5';
 
       const bgColors = percentages.map(p => {
-        if (p >= 115) return '#ef4444';
-        if (p >= 105) return '#f97316';
-        if (p >= 98)  return '#eab308';
-        return baseColor;
+        const r = Math.round(p);
+        if (r >= 115) return '#ef4444';
+        if (r >= 101) return '#eab308';
+        return '#22c55e';
       });
 
       const newChart = new Chart(ctx, {
@@ -2178,14 +2177,15 @@
 
       qtyGrid.innerHTML = ['2027','2028','2029','2030','2031'].map((yr, i) => {
         const pct = occs[i];
-        const [bg, border, text] = pct >= 115
+        const cp = cap > 0 ? Math.round(pct) : -1;
+        const [bg, border, text] = cp >= 115
           ? ['bg-red-50 dark:bg-red-900/30', 'border-red-300 dark:border-red-700', 'text-red-600 dark:text-red-400']
-          : pct >= 105
-          ? ['bg-orange-50 dark:bg-orange-900/30', 'border-orange-300 dark:border-orange-700', 'text-orange-600 dark:text-orange-400']
-          : pct >= 98
+          : cp >= 101
           ? ['bg-yellow-50 dark:bg-yellow-900/30', 'border-yellow-300 dark:border-yellow-700', 'text-yellow-600 dark:text-yellow-400']
+          : cp >= 0
+          ? ['bg-green-50 dark:bg-green-900/30', 'border-green-300 dark:border-green-700', 'text-green-600 dark:text-green-400']
           : ['bg-white/60 dark:bg-slate-900/50', 'border-slate-200 dark:border-slate-700', 'text-slate-800 dark:text-slate-200'];
-        const barColor = pct >= 115 ? 'bg-red-500' : pct >= 105 ? 'bg-orange-500' : pct >= 98 ? 'bg-yellow-500' : 'bg-green-500';
+        const barColor = cp >= 115 ? 'bg-red-500' : cp >= 101 ? 'bg-yellow-500' : 'bg-green-500';
         return `<div class="${bg} rounded-lg p-1.5 sm:p-3 border ${border} shadow-sm">
           <span class="block text-[10px] sm:text-xs text-slate-500 font-bold mb-0.5">${yr}</span>
           <span class="font-black text-xs sm:text-base ${text}">${fmt(qtys[i])}</span>
@@ -2201,7 +2201,7 @@
       const textColor = isDark ? '#cbd5e1' : '#475569';
       const gridColor = isDark ? '#334155' : '#e2e8f0';
       const baseColor = '#9333ea';
-      const bgColors  = occs.map(p => p >= 115 ? '#ef4444' : p >= 105 ? '#f97316' : p >= 98 ? '#eab308' : baseColor);
+      const bgColors  = occs.map(p => { const r = Math.round(p); return r >= 115 ? '#ef4444' : r >= 101 ? '#eab308' : '#22c55e'; });
 
       dmfChartInstance = new Chart(ctx, {
         type: 'bar',
@@ -2270,14 +2270,15 @@
 
       qtyGrid.innerHTML = ['2027','2028','2029','2030','2031'].map((yr, i) => {
         const pct = occs[i];
-        const [bg, border, text] = pct >= 115
+        const cp = cap > 0 ? Math.round(pct) : -1;
+        const [bg, border, text] = cp >= 115
           ? ['bg-red-50 dark:bg-red-900/30', 'border-red-300 dark:border-red-700', 'text-red-600 dark:text-red-400']
-          : pct >= 105
-          ? ['bg-orange-50 dark:bg-orange-900/30', 'border-orange-300 dark:border-orange-700', 'text-orange-600 dark:text-orange-400']
-          : pct >= 98
+          : cp >= 101
           ? ['bg-yellow-50 dark:bg-yellow-900/30', 'border-yellow-300 dark:border-yellow-700', 'text-yellow-600 dark:text-yellow-400']
+          : cp >= 0
+          ? ['bg-green-50 dark:bg-green-900/30', 'border-green-300 dark:border-green-700', 'text-green-600 dark:text-green-400']
           : ['bg-white/60 dark:bg-slate-900/50', 'border-slate-200 dark:border-slate-700', 'text-slate-800 dark:text-slate-200'];
-        const barColor = pct >= 115 ? 'bg-red-500' : pct >= 105 ? 'bg-orange-500' : pct >= 98 ? 'bg-yellow-500' : 'bg-green-500';
+        const barColor = cp >= 115 ? 'bg-red-500' : cp >= 101 ? 'bg-yellow-500' : 'bg-green-500';
         return `<div class="${bg} rounded-lg p-1.5 sm:p-3 border ${border} shadow-sm">
           <span class="block text-[10px] sm:text-xs text-slate-500 font-bold mb-0.5">${yr}</span>
           <span class="font-black text-xs sm:text-base ${text}">${fmt(qtys[i])}</span>
@@ -2293,7 +2294,7 @@
       const textColor = isDark ? '#cbd5e1' : '#475569';
       const gridColor = isDark ? '#334155' : '#e2e8f0';
       const baseColor = '#14b8a6';
-      const bgColors  = occs.map(p => p >= 115 ? '#ef4444' : p >= 105 ? '#f97316' : p >= 98 ? '#eab308' : baseColor);
+      const bgColors  = occs.map(p => { const r = Math.round(p); return r >= 115 ? '#ef4444' : r >= 101 ? '#eab308' : '#22c55e'; });
 
       eDriveChartInstance = new Chart(ctx, {
         type: 'bar',
@@ -2388,14 +2389,15 @@
 
       document.getElementById('pc-qty-grid').innerHTML = ['2027','2028','2029','2030','2031'].map((yr, i) => {
         const pct = cap > 0 ? occs[i] : -1;
-        const [bg, border, text] = pct >= 115
+        const cp = Math.round(pct);
+        const [bg, border, text] = cp >= 115
           ? ['bg-red-50 dark:bg-red-900/30', 'border-red-300 dark:border-red-700', 'text-red-600 dark:text-red-400']
-          : pct >= 105
-          ? ['bg-orange-50 dark:bg-orange-900/30', 'border-orange-300 dark:border-orange-700', 'text-orange-600 dark:text-orange-400']
-          : pct >= 98
+          : cp >= 101
           ? ['bg-yellow-50 dark:bg-yellow-900/30', 'border-yellow-300 dark:border-yellow-700', 'text-yellow-600 dark:text-yellow-400']
+          : cp >= 0
+          ? ['bg-green-50 dark:bg-green-900/30', 'border-green-300 dark:border-green-700', 'text-green-600 dark:text-green-400']
           : ['bg-white/60 dark:bg-slate-900/50', 'border-slate-200 dark:border-slate-700', 'text-slate-800 dark:text-slate-200'];
-        const barColor = pct >= 115 ? 'bg-red-500' : pct >= 105 ? 'bg-orange-500' : pct >= 98 ? 'bg-yellow-500' : 'bg-green-500';
+        const barColor = cp >= 115 ? 'bg-red-500' : cp >= 101 ? 'bg-yellow-500' : 'bg-green-500';
         const pctHtml  = cap > 0
           ? `<span class="block text-[10px] sm:text-xs font-bold mt-0.5 ${text}">%${pct.toFixed(0)}</span>
              <div class="mt-1 h-1 rounded-full bg-slate-200/70 dark:bg-slate-600/50"><div class="${barColor} h-1 rounded-full" style="width:${Math.min(pct,100).toFixed(0)}%"></div></div>`
@@ -2416,7 +2418,7 @@
       const baseColor = '#f97316';
       const chartData = cap > 0 ? occs : qtys;
       const bgColors  = cap > 0
-        ? occs.map(p => p >= 115 ? '#ef4444' : p >= 105 ? '#f97316' : p >= 98 ? '#eab308' : baseColor)
+        ? occs.map(p => { const r = Math.round(p); return r >= 115 ? '#ef4444' : r >= 101 ? '#eab308' : '#22c55e'; })
         : qtys.map(() => baseColor);
 
       pfwCompChartInstance = new Chart(ctx, {
