@@ -1443,13 +1443,19 @@
           if (d.dmf) {
             const pd = pfwMap[d.dmf.toUpperCase()];
             if (pd) {
-              const _ln = isAllPFW ? pd.pfwLine : isAllSG ? pd.springGuideLine : pd.drivePlateLine;
               const _tp = isAllPFW ? 'PFW' : isAllSG ? 'SG' : 'DP';
-              if (_ln) {
+              // PFW: aynı DMF birden çok PFW hattına gidiyorsa adedi hatlara eşit böl.
+              // SG/DP: tekil hat, mevcut davranış korunur.
+              const _lines = isAllPFW ? (pd.pfwLines && pd.pfwLines.length ? pd.pfwLines : (pd.pfwLine ? [pd.pfwLine] : []))
+                                      : [ isAllSG ? pd.springGuideLine : pd.drivePlateLine ];
+              const _n = isAllPFW ? _lines.length : 1;
+              _lines.forEach(_ln => {
+                if (!_ln) return;
                 const key = _tp + ':' + lineKeyVD(_ln);
                 if (!lineVolumes.has(key)) lineVolumes.set(key, { type: _tp, lineName: _ln, v26:0, v27:0, v28:0, v29:0, v30:0 });
-                const lv = lineVolumes.get(key); lv.v26+=d.vol26; lv.v27+=d.vol27; lv.v28+=d.vol28; lv.v29+=d.vol29; lv.v30+=d.vol30;
-              }
+                const lv = lineVolumes.get(key);
+                lv.v26+=d.vol26/_n; lv.v27+=d.vol27/_n; lv.v28+=d.vol28/_n; lv.v29+=d.vol29/_n; lv.v30+=d.vol30/_n;
+              });
             }
           }
         } else {
@@ -1472,7 +1478,18 @@
           if (d.dmf) {
             const _pd2 = pfwMap[d.dmf.toUpperCase()];
             if (_pd2) {
-              [['PFW', _pd2.pfwLine], ['SG', _pd2.springGuideLine], ['DP', _pd2.drivePlateLine]].forEach(([tp, ln]) => {
+              // PFW: adedi DMF'in gittiği tüm PFW hatlarına böl; eşleşen hatta payını ekle.
+              const _pfwLines = _pd2.pfwLines && _pd2.pfwLines.length ? _pd2.pfwLines : (_pd2.pfwLine ? [_pd2.pfwLine] : []);
+              const _pfwN = _pfwLines.length;
+              _pfwLines.forEach(ln => {
+                if (ln && lineKeyVD(ln).includes(lineKeyVD(termLower))) {
+                  const key = 'PFW:' + lineKeyVD(ln);
+                  if (!lineVolumes.has(key)) lineVolumes.set(key, { type: 'PFW', lineName: ln, v26:0, v27:0, v28:0, v29:0, v30:0 });
+                  const lv = lineVolumes.get(key); lv.v26+=d.vol26/_pfwN; lv.v27+=d.vol27/_pfwN; lv.v28+=d.vol28/_pfwN; lv.v29+=d.vol29/_pfwN; lv.v30+=d.vol30/_pfwN;
+                }
+              });
+              // SG/DP: tekil hat, mevcut davranış korunur.
+              [['SG', _pd2.springGuideLine], ['DP', _pd2.drivePlateLine]].forEach(([tp, ln]) => {
                 if (ln && lineKeyVD(ln).includes(lineKeyVD(termLower))) {
                   const key = tp + ':' + lineKeyVD(ln);
                   if (!lineVolumes.has(key)) lineVolumes.set(key, { type: tp, lineName: ln, v26:0, v27:0, v28:0, v29:0, v30:0 });
@@ -2379,7 +2396,14 @@
         if (!row.dmf) return;
         const pd = pfwMap[row.dmf.toUpperCase()];
         if (!pd) return;
-        if (lineKey(pd[lineField] || '') === key) {
+        if (componentType === 'PFW') {
+          // Aynı DMF birden çok PFW hattına gidiyorsa adedi hatlara böl; bu hattın payını ekle.
+          const lines = pd.pfwLines && pd.pfwLines.length ? pd.pfwLines : (pd.pfwLine ? [pd.pfwLine] : []);
+          const n = lines.length;
+          if (n > 0 && lines.some(l => lineKey(l) === key)) {
+            v26+=row.vol26/n; v27+=row.vol27/n; v28+=row.vol28/n; v29+=row.vol29/n; v30+=row.vol30/n;
+          }
+        } else if (lineKey(pd[lineField] || '') === key) {
           v26+=row.vol26; v27+=row.vol27; v28+=row.vol28; v29+=row.vol29; v30+=row.vol30;
         }
       });

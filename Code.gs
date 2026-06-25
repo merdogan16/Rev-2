@@ -182,7 +182,7 @@ function getLayoutImage(fileId) {
 }
 
 function getSpreadsheetData() {
-  const CACHE_KEY = 'spreadsheet_data_v27';
+  const CACHE_KEY = 'spreadsheet_data_v28';
   const cache = CacheService.getScriptCache();
   const cached = cache.get(CACHE_KEY);
   if (cached) {
@@ -256,6 +256,8 @@ function getSpreadsheetData() {
     }
     
     // 3. PFW SHEET → DMF ref → PFW/SpringGuide/DrivePlate haritası
+    // Aynı DMF birden çok PFW hattına gidebilir; tekil alanlar (kit kartı / SG / DP) son
+    // satırı tutar, pfwLines ise tüm farklı PFW hatlarını biriktirir (PFW adedini bölmek için).
     const pfwSheet = mainSs.getSheetByName('PFW');
     const pfwMap = {};
     if (pfwSheet) {
@@ -264,16 +266,21 @@ function getSpreadsheetData() {
       pfwRaw.forEach(row => {
         const dmfRef = String(row[1] || '').trim();  // B sütunu: DMF referansı
         const pfwRef = String(row[3] || '').trim();  // D sütunu: PFW referansı
-        if (dmfRef && pfwRef) {
-          pfwMap[dmfRef.toUpperCase()] = {
-            pfw:             pfwRef,
-            pfwLine:         String(row[4] || '').trim(),  // E
-            springGuide:     String(row[5] || '').trim(),  // F
-            springGuideLine: String(row[6] || '').trim(),  // G
-            drivePlate:      String(row[7] || '').trim(),  // H
-            drivePlateLine:  String(row[8] || '').trim()   // I
-          };
+        if (!dmfRef || !pfwRef) return;
+        const key = dmfRef.toUpperCase();
+        if (!pfwMap[key]) {
+          pfwMap[key] = { pfw: '', pfwLine: '', springGuide: '', springGuideLine: '',
+                          drivePlate: '', drivePlateLine: '', pfwLines: [] };
         }
+        const e = pfwMap[key];
+        e.pfw             = pfwRef;
+        e.pfwLine         = String(row[4] || '').trim();  // E
+        e.springGuide     = String(row[5] || '').trim();  // F
+        e.springGuideLine = String(row[6] || '').trim();  // G
+        e.drivePlate      = String(row[7] || '').trim();  // H
+        e.drivePlateLine  = String(row[8] || '').trim();  // I
+        const pl = e.pfwLine;
+        if (pl && !e.pfwLines.some(x => normLineName(x) === normLineName(pl))) e.pfwLines.push(pl);
       });
     }
 
@@ -450,7 +457,7 @@ function getLineStats() {
 }
 
 function clearCache() {
-  CacheService.getScriptCache().remove('spreadsheet_data_v27');
+  CacheService.getScriptCache().remove('spreadsheet_data_v28');
   Logger.log('Cache temizlendi. Bir sonraki web app isteği sheet\'ten taze veri okuyacak.');
 }
 
