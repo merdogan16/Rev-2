@@ -530,3 +530,91 @@ function debugDMFRows() {
     Logger.log('Satır ' + (70+i) + ': D=' + r[0] + ' CT=' + r[3] + ' TRP=' + r[4] + ' Cap=' + r[10]);
   });
 }
+
+// PFW teşhisi: PFW2 adetleri nereye gidiyor? (çakışma / eşleşmeme tespiti)
+function debugPFW() {
+  const mainSsId = '1c3ObCQTHSi7HBrxDcNWbTA4TRHJiBnRfIpWbevtAemQ';
+  const mainSs   = SpreadsheetApp.openById(mainSsId);
+  const pfwSheet = mainSs.getSheetByName('PFW');
+  const mtpSheet = mainSs.getSheetByName('MAIN');
+
+  // 1) MAIN ürünlerinden DMF ref -> 5 yıl toplam adet
+  const mtpLastRow = Math.max(mtpSheet.getLastRow(), 8);
+  const mtpRaw = mtpSheet.getRange(8, 1, mtpLastRow - 7, 100).getValues();
+  const volByDmf = {};
+  mtpRaw.forEach(row => {
+    const dmf = String(row[22] || '').trim().toUpperCase();   // W
+    if (!dmf) return;
+    const v = (Number(row[91])||0)+(Number(row[92])||0)+(Number(row[93])||0)+(Number(row[94])||0)+(Number(row[95])||0);
+    volByDmf[dmf] = (volByDmf[dmf] || 0) + v;
+  });
+
+  // 2) PFW sayfası: DMF ref -> hangi PFW hat(lar)ına gidiyor
+  const pfwLastRow = Math.max(pfwSheet.getLastRow(), 1);
+  const pfwRaw = pfwSheet.getRange(1, 1, pfwLastRow, 9).getValues();
+  const dmfToLines = {};   // dmfRef -> { lineKey: rawLineName }
+  const lastWins   = {};   // dmfRef -> lineKey (kodun kullandığı: son satır kazanır)
+  const rowsPerLine = {};  // lineKey -> PFW sayfasındaki satır sayısı
+  pfwRaw.forEach((row, i) => {
+    if (i === 0) return;                                  // başlık satırı
+    const dmf     = String(row[1] || '').trim().toUpperCase();  // B
+    const pfwRef  = String(row[3] || '').trim();               // D
+    const lineRaw = String(row[4] || '').trim();               // E
+    if (!dmf || !pfwRef) return;
+    const lk = normLineName(lineRaw);
+    rowsPerLine[lk] = (rowsPerLine[lk] || 0) + 1;
+    if (!dmfToLines[dmf]) dmfToLines[dmf] = {};
+    dmfToLines[dmf][lk] = lineRaw;
+    lastWins[dmf] = lk;                                   // overwrite = son satır kazanır
+  });
+
+  // 3) Her PFW hattının "kodun şu an saydığı" toplam adedi
+  const volByLine = {};
+  Object.keys(volByDmf).forEach(dmf => {
+    const lk = lastWins[dmf];
+    if (lk) volByLine[lk] = (volByLine[lk] || 0) + volByDmf[dmf];
+  });
+
+  Logger.log('=== A) PFW hatları: PFW satır sayısı + ŞU AN sayılan 5 yıl toplam adet ===');
+  Object.keys(rowsPerLine).sort().forEach(lk => {
+    Logger.log(lk + ' -> PFW sayfasinda ' + rowsPerLine[lk] + ' satir | su an sayilan adet: ' + (volByLine[lk] || 0));
+  });
+
+  // 4) Çakışmalar: aynı DMF birden çok PFW hattında
+  Logger.log('=== B) CAKISMA: ayni DMF birden fazla PFW hattinda (son satir kazanir, digerleri kaybolur) ===');
+  let conflictCount = 0; const lostByLine = {};
+  Object.keys(dmfToLines).forEach(dmf => {
+    const lines = Object.keys(dmfToLines[dmf]);
+    if (lines.length > 1) {
+      conflictCount++;
+      const winner = lastWins[dmf];
+      lines.filter(l => l !== winner).forEach(l => { lostByLine[l] = (lostByLine[l] || 0) + (volByDmf[dmf] || 0); });
+      if (conflictCount <= 25) {
+        Logger.log('DMF ' + dmf + ' -> hatlar [' + lines.join(', ') + '] | KAZANAN: ' + winner + ' | adet: ' + (volByDmf[dmf] || 0));
+      }
+    }
+  });
+  Logger.log('Toplam cakisan DMF sayisi: ' + conflictCount);
+  Logger.log('--- Cakisma yuzunden KAYBEDEN hatlar ve kaybettikleri adet ---');
+  Object.keys(lostByLine).sort().forEach(l => Logger.log(l + ' kaybettigi adet: ' + lostByLine[l]));
+
+  // 5) PFW2 odak
+  Logger.log('=== C) PFW2 ODAK: PFW2 satirlarindaki DMF refleri nereye gidiyor? ===');
+  let pfw2Total = 0, pfw2Lost = 0, pfw2NoMatch = 0, pfw2Rows = 0;
+  Object.keys(dmfToLines).forEach(dmf => {
+    if (!dmfToLines[dmf]['PFW2']) return;
+    pfw2Rows++;
+    const vol = volByDmf[dmf];
+    if (vol === undefined) { pfw2NoMatch++; return; }
+    pfw2Total += vol;
+    const winner = lastWins[dmf];
+    if (winner !== 'PFW2') {
+      pfw2Lost += vol;
+      Logger.log('PFW2 DMF ' + dmf + ' adet ' + vol + ' -> ' + winner + ' hattina gitti (calindi)');
+    }
+  });
+  Logger.log('PFW2 DMF ref sayisi (PFW sayfasinda): ' + pfw2Rows);
+  Logger.log('PFW2 DMF reflerinin urunlerdeki toplam adedi: ' + pfw2Total);
+  Logger.log('Bunlardan baska hatta gidip kaybolan adet: ' + pfw2Lost);
+  Logger.log('PFW2 DMF refi urunlerde HIC eslesmeyen ref sayisi: ' + pfw2NoMatch);
+}
