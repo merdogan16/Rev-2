@@ -1438,11 +1438,7 @@
         } else if (isAllDMF) {
           // populated from dmfLineData after forEach
         } else if (isAllEDrive) {
-          if (eLineRaw) {
-            const key = 'EDrive:' + eLineRaw.replace(/\s+/g, '').toUpperCase();
-            if (!lineVolumes.has(key)) lineVolumes.set(key, { type: 'EDrive', lineName: eLineRaw, v26:0, v27:0, v28:0, v29:0, v30:0 });
-            const lv = lineVolumes.get(key); lv.v26+=d.vol26; lv.v27+=d.vol27; lv.v28+=d.vol28; lv.v29+=d.vol29; lv.v30+=d.vol30;
-          }
+          // populated from eDriveLineStats after forEach
         } else if (isAllPFW || isAllSG || isAllDP) {
           if (d.dmf) {
             const pd = pfwMap[d.dmf.toUpperCase()];
@@ -1542,6 +1538,20 @@
           if (!lineVolumes.has(key)) lineVolumes.set(key, { type: 'DMF', lineName: dmfLineRaw, v26:0, v27:0, v28:0, v29:0, v30:0 });
           const lv = lineVolumes.get(key);
           lv.v26+=d.vol26; lv.v27+=d.vol27; lv.v28+=d.vol28; lv.v29+=d.vol29; lv.v30+=d.vol30;
+        });
+      }
+
+      if (isAllEDrive) {
+        Object.keys(eDriveLineStats).forEach(k => {
+          const s = eDriveLineStats[k];
+          lineVolumes.set('EDrive:' + k, { type: 'EDrive', lineName: s.lineName, v26: s.v26, v27: s.v27, v28: s.v28, v29: s.v29, v30: s.v30 });
+        });
+      } else if (!isAllPPCA && !isAllDisk && !isAllDMF && !isAllPFW && !isAllSG && !isAllDP) {
+        Object.keys(eDriveLineStats).forEach(k => {
+          const s = eDriveLineStats[k];
+          if (s.lineName && lineKeyVD(s.lineName).includes(lineKeyVD(termLower))) {
+            lineVolumes.set('EDrive:' + k, { type: 'EDrive', lineName: s.lineName, v26: s.v26, v27: s.v27, v28: s.v28, v29: s.v29, v30: s.v30 });
+          }
         });
       }
 
