@@ -625,3 +625,80 @@ function debugPFW() {
   Logger.log('Bunlardan baska hatta gidip kaybolan adet: ' + pfw2Lost);
   Logger.log('PFW2 DMF refi urunlerde HIC eslesmeyen ref sayisi: ' + pfw2NoMatch);
 }
+
+// E-DRIVE teşhisi: e-drive dosyasındaki ref/hat verisi okunuyor mu, MAIN O sütunu
+// ve MTP_summary e-Drive hatlarıyla eşleşiyor mu? (kart neden boş kalıyor?)
+function debugEDrive() {
+  // 1) e-drive dosyası: A=ref, B=hat (ilk satırları olduğu gibi dök)
+  Logger.log('=== A) e-drive dosyasi ilk 15 satir (A-E ham) ===');
+  let eRows = [];
+  try {
+    const eSheet = SpreadsheetApp.openById('1pdPtUMFP8TYK8YCeEzIrSOZxL-Km7FzJBY5CXfLAU14').getSheetByName('e-drive');
+    if (!eSheet) { Logger.log('!! "e-drive" sayfasi bulunamadi'); return; }
+    const eLast = eSheet.getLastRow();
+    Logger.log('e-drive son satir: ' + eLast);
+    eRows = eSheet.getRange(2, 1, Math.max(eLast - 1, 0), 5).getValues();
+    eRows.slice(0, 15).forEach((r, i) => {
+      Logger.log('Satir ' + (i + 2) + ': A="' + r[0] + '" B="' + r[1] + '" C="' + r[2] + '" D="' + r[3] + '" E="' + r[4] + '"');
+    });
+  } catch (e) { Logger.log('!! e-drive okuma hatasi: ' + e); return; }
+
+  // refToLine (B sütunu) ve normalize hat kümesi
+  const refToLine = {};
+  const eLineKeys = {};
+  eRows.forEach(r => {
+    const ref = String(r[0] || '').trim();
+    const line = String(r[1] || '').trim();   // B
+    if (ref && line) {
+      refToLine[ref.toUpperCase()] = line;
+      eLineKeys[normLineName(line)] = line;
+    }
+  });
+  Logger.log('e-drive: eslestirilen ref sayisi (B dolu): ' + Object.keys(refToLine).length);
+  Logger.log('e-drive: farkli hat (B) listesi -> ' + Object.keys(eLineKeys).map(k => k + ' ("' + eLineKeys[k] + '")').join(' | '));
+
+  // 2) MTP_summary 100-103: gercek e-Drive hat kapasite kartlari
+  Logger.log('=== B) MTP_summary 100-103 e-Drive hatlari (kapasite kartlari) ===');
+  const statKeys = {};
+  try {
+    const sum = SpreadsheetApp.openById('1HbTImLr13BvtjYb2LfTG2gg42YLmpjLEnJoLGXp4hv8').getSheetByName('MTP_summary');
+    sum.getRange(100, 1, 4, 23).getValues().forEach((r, i) => {
+      const name = String(r[4] || '').trim();
+      const key = normLineName(name);
+      if (key) statKeys[key] = name;
+      Logger.log('Satir ' + (100 + i) + ': E="' + name + '" key=' + key + ' Cap(N)=' + r[13]);
+    });
+  } catch (e) { Logger.log('!! summary okuma hatasi: ' + e); }
+
+  // 3) MAIN A05 kitleri: O sutunu ref -> hangi e-Drive hattina cozuluyor, eslesti mi?
+  Logger.log('=== C) MAIN A05 kitleri: ref eslesmesi ===');
+  let a05 = 0, matchedRef = 0, lineInStats = 0, fellBack = 0;
+  const sampleMatched = [], sampleUnmatched = [];
+  try {
+    const main = SpreadsheetApp.openById('1c3ObCQTHSi7HBrxDcNWbTA4TRHJiBnRfIpWbevtAemQ').getSheetByName('MAIN');
+    const last = Math.max(main.getLastRow(), 8);
+    main.getRange(8, 1, last - 7, 100).getValues().forEach(row => {
+      const kitRef = String(row[14] || '').trim();           // O
+      const fam = String(row[8] || '').trim().toUpperCase();  // I
+      if (fam !== 'A05' || !kitRef) return;
+      a05++;
+      const line = refToLine[kitRef.toUpperCase()];
+      if (line) {
+        matchedRef++;
+        if (statKeys[normLineName(line)]) lineInStats++;
+        if (sampleMatched.length < 10) sampleMatched.push(kitRef + ' -> "' + line + '" (kapasite karti: ' + (statKeys[normLineName(line)] ? 'VAR' : 'YOK') + ')');
+      } else {
+        fellBack++;
+        if (sampleUnmatched.length < 10) sampleUnmatched.push(kitRef);
+      }
+    });
+  } catch (e) { Logger.log('!! MAIN okuma hatasi: ' + e); }
+
+  Logger.log('A05 kit sayisi: ' + a05);
+  Logger.log('e-drive ref eslesen (B hattini alan): ' + matchedRef + ' | eslesip kapasite karti da olan: ' + lineInStats);
+  Logger.log('e-drive ref eslesMEyen (genel "E-Drive"e dusen): ' + fellBack);
+  Logger.log('--- Eslesen ornekler ---');
+  sampleMatched.forEach(s => Logger.log('  ' + s));
+  Logger.log('--- EslesMEYEN ornek O-ref (e-drive A sutununda yok) ---');
+  Logger.log('  ' + sampleUnmatched.join(', '));
+}
