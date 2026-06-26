@@ -182,7 +182,7 @@ function getLayoutImage(fileId) {
 }
 
 function getSpreadsheetData() {
-  const CACHE_KEY = 'spreadsheet_data_v28';
+  const CACHE_KEY = 'spreadsheet_data_v29';
   const cache = CacheService.getScriptCache();
   const cached = cache.get(CACHE_KEY);
   if (cached) {
@@ -284,7 +284,7 @@ function getSpreadsheetData() {
       });
     }
 
-    // 4. E-DRIVE: ayrı dosyada "e-drive" sayfası → A=referans (A2+), E=hat (E2+)
+    // 4. E-DRIVE: ayrı dosyada "e-drive" sayfası → A=referans (A2+), B=hat (B2+)
     const eDriveData = [];
     const refToEDriveLine = {};
     try {
@@ -292,9 +292,9 @@ function getSpreadsheetData() {
       if (eDriveSheet) {
         const eDriveLastRow = eDriveSheet.getLastRow();
         if (eDriveLastRow >= 2) {
-          eDriveSheet.getRange(2, 1, eDriveLastRow - 1, 5).getValues().forEach(row => {
+          eDriveSheet.getRange(2, 1, eDriveLastRow - 1, 2).getValues().forEach(row => {
             const ref  = String(row[0] || '').trim();  // A
-            const line = String(row[4] || '').trim();  // E
+            const line = String(row[1] || '').trim();  // B
             if (line && ref) {
               eDriveData.push({ line, ref });
               refToEDriveLine[ref.toUpperCase()] = line;
@@ -457,7 +457,7 @@ function getLineStats() {
 }
 
 function clearCache() {
-  CacheService.getScriptCache().remove('spreadsheet_data_v28');
+  CacheService.getScriptCache().remove('spreadsheet_data_v29');
   Logger.log('Cache temizlendi. Bir sonraki web app isteği sheet\'ten taze veri okuyacak.');
 }
 
