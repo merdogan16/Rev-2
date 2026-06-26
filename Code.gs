@@ -670,35 +670,75 @@ function debugEDrive() {
     });
   } catch (e) { Logger.log('!! summary okuma hatasi: ' + e); }
 
-  // 3) MAIN A05 kitleri: O sutunu ref -> hangi e-Drive hattina cozuluyor, eslesti mi?
-  Logger.log('=== C) MAIN A05 kitleri: ref eslesmesi ===');
-  let a05 = 0, matchedRef = 0, lineInStats = 0, fellBack = 0;
-  const sampleMatched = [], sampleUnmatched = [];
+  // e-drive ref kümeleri: tam ("75237B") ve taban ("75237" = sondaki harfler atılmış)
+  const refFull = {};   // upper full ref -> A satır degeri
+  const refBase = {};   // taban ref -> ornek tam ref
+  eRows.forEach(r => {
+    const ref = String(r[0] || '').trim();
+    if (!ref) return;
+    refFull[ref.toUpperCase()] = ref;
+    const base = ref.toUpperCase().replace(/[^0-9]+$/,'').replace(/[A-Z]+$/,'');
+    if (base) refBase[base] = ref;
+  });
+
+  // MAIN'i bir kez oku
+  let mainRaw = [];
   try {
     const main = SpreadsheetApp.openById('1c3ObCQTHSi7HBrxDcNWbTA4TRHJiBnRfIpWbevtAemQ').getSheetByName('MAIN');
     const last = Math.max(main.getLastRow(), 8);
-    main.getRange(8, 1, last - 7, 100).getValues().forEach(row => {
-      const kitRef = String(row[14] || '').trim();           // O
-      const fam = String(row[8] || '').trim().toUpperCase();  // I
-      if (fam !== 'A05' || !kitRef) return;
-      a05++;
-      const line = refToLine[kitRef.toUpperCase()];
-      if (line) {
-        matchedRef++;
-        if (statKeys[normLineName(line)]) lineInStats++;
-        if (sampleMatched.length < 10) sampleMatched.push(kitRef + ' -> "' + line + '" (kapasite karti: ' + (statKeys[normLineName(line)] ? 'VAR' : 'YOK') + ')');
-      } else {
-        fellBack++;
-        if (sampleUnmatched.length < 10) sampleUnmatched.push(kitRef);
-      }
-    });
+    mainRaw = main.getRange(8, 1, last - 7, 100).getValues();
   } catch (e) { Logger.log('!! MAIN okuma hatasi: ' + e); }
+  Logger.log('MAIN urun satir sayisi: ' + mainRaw.length);
 
-  Logger.log('A05 kit sayisi: ' + a05);
-  Logger.log('e-drive ref eslesen (B hattini alan): ' + matchedRef + ' | eslesip kapasite karti da olan: ' + lineInStats);
-  Logger.log('e-drive ref eslesMEyen (genel "E-Drive"e dusen): ' + fellBack);
-  Logger.log('--- Eslesen ornekler ---');
-  sampleMatched.forEach(s => Logger.log('  ' + s));
-  Logger.log('--- EslesMEYEN ornek O-ref (e-drive A sutununda yok) ---');
-  Logger.log('  ' + sampleUnmatched.join(', '));
+  // C) Aile kodlari (I sutunu) dagilimi
+  Logger.log('=== C) MAIN aile kodu (I sutunu) dagilimi ===');
+  const famCount = {};
+  mainRaw.forEach(row => {
+    const fam = String(row[8] || '').trim().toUpperCase();
+    if (!fam) return;
+    famCount[fam] = (famCount[fam] || 0) + 1;
+  });
+  Object.keys(famCount).sort((a,b)=>famCount[b]-famCount[a]).slice(0,40)
+    .forEach(f => Logger.log('  ' + f + ' : ' + famCount[f]));
+
+  // D) e-drive refleri MAIN'de hangi sutun(lar)da geciyor? (tam + taban)
+  Logger.log('=== D) e-drive refleri MAIN icinde nerede? (sutun bazli eslesme) ===');
+  const colFull = {}, colBase = {};
+  const A = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const colName = c => c < 26 ? A[c] : A[Math.floor(c/26)-1] + A[c%26];
+  const sampleHit = [];
+  mainRaw.forEach((row, ri) => {
+    for (let c = 0; c < row.length; c++) {
+      const cell = String(row[c] || '').trim().toUpperCase();
+      if (!cell) continue;
+      if (refFull[cell]) {
+        colFull[c] = (colFull[c] || 0) + 1;
+        if (sampleHit.length < 12) sampleHit.push('satir ' + (ri+8) + ' sutun ' + colName(c) + '(' + c + ') TAM="' + cell + '"');
+      } else if (refBase[cell]) {
+        colBase[c] = (colBase[c] || 0) + 1;
+        if (sampleHit.length < 12) sampleHit.push('satir ' + (ri+8) + ' sutun ' + colName(c) + '(' + c + ') TABAN="' + cell + '"');
+      }
+    }
+  });
+  Logger.log('-- TAM ref eslesen sutunlar (sutun(index): adet) --');
+  Object.keys(colFull).forEach(c => Logger.log('  ' + colName(+c) + '(' + c + ') : ' + colFull[c]));
+  if (!Object.keys(colFull).length) Logger.log('  (hicbir TAM ref MAIN\'de bulunamadi)');
+  Logger.log('-- TABAN ref eslesen sutunlar --');
+  Object.keys(colBase).forEach(c => Logger.log('  ' + colName(+c) + '(' + c + ') : ' + colBase[c]));
+  if (!Object.keys(colBase).length) Logger.log('  (hicbir TABAN ref MAIN\'de bulunamadi)');
+  Logger.log('-- ornek eslesmeler --');
+  sampleHit.forEach(s => Logger.log('  ' + s));
+
+  // E) Ornek bir e-Drive grubu: ayni taban refin tum operasyon/hatlari
+  Logger.log('=== E) e-drive: ornek gruplar (ayni taban -> operasyon/hat listesi) ===');
+  const groups = {};
+  eRows.forEach(r => {
+    const ref = String(r[0] || '').trim();
+    const line = String(r[1] || '').trim();
+    if (!ref || !line) return;
+    const base = ref.toUpperCase().replace(/[^0-9]+$/,'').replace(/[A-Z]+$/,'');
+    if (!groups[base]) groups[base] = [];
+    groups[base].push(ref + '=' + line + (statKeys[normLineName(line)] ? ' [KART VAR]' : ''));
+  });
+  Object.keys(groups).slice(0, 5).forEach(b => Logger.log('  Taban ' + b + ': ' + groups[b].join(' | ')));
 }
