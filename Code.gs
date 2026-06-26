@@ -182,7 +182,7 @@ function getLayoutImage(fileId) {
 }
 
 function getSpreadsheetData() {
-  const CACHE_KEY = 'spreadsheet_data_v29';
+  const CACHE_KEY = 'spreadsheet_data_v30';
   const cache = CacheService.getScriptCache();
   const cached = cache.get(CACHE_KEY);
   if (cached) {
@@ -284,9 +284,12 @@ function getSpreadsheetData() {
       });
     }
 
-    // 4. E-DRIVE: ayrı dosyada "e-drive" sayfası → A=referans (A2+), B=hat (B2+)
+    // 4. E-DRIVE: ayrı dosyada "e-drive" sayfası → A=referans (A2+), B=hat/operasyon (B2+)
+    //    Referanslar taban no + operasyon ekiyle gelir (örn. 75237B, 75237H, 75237IS).
+    //    Aynı taban no, bir e-Drive parçasının tüm operasyon hatlarını temsil eder.
     const eDriveData = [];
-    const refToEDriveLine = {};
+    const eDriveRefSet = {};       // TAM ref (büyük harf) -> true  (MAIN O sütunu ile eşleştirme)
+    const eDriveBaseToLines = {};  // taban no -> [ham hat adları]
     try {
       const eDriveSheet = SpreadsheetApp.openById('1pdPtUMFP8TYK8YCeEzIrSOZxL-Km7FzJBY5CXfLAU14').getSheetByName('e-drive');
       if (eDriveSheet) {
@@ -295,10 +298,16 @@ function getSpreadsheetData() {
           eDriveSheet.getRange(2, 1, eDriveLastRow - 1, 2).getValues().forEach(row => {
             const ref  = String(row[0] || '').trim();  // A
             const line = String(row[1] || '').trim();  // B
-            if (line && ref) {
-              eDriveData.push({ line, ref });
-              refToEDriveLine[ref.toUpperCase()] = line;
-            }
+            if (!ref) return;
+            const refUp = ref.toUpperCase();
+            eDriveRefSet[refUp] = true;
+            if (!line) return;
+            eDriveData.push({ line, ref });
+            const base = (refUp.match(/^[0-9]+/) || [''])[0];
+            if (!base) return;
+            if (!eDriveBaseToLines[base]) eDriveBaseToLines[base] = [];
+            if (!eDriveBaseToLines[base].some(x => normLineName(x) === normLineName(line)))
+              eDriveBaseToLines[base].push(line);
           });
         }
       }
@@ -326,6 +335,9 @@ function getSpreadsheetData() {
       });
     } catch(e) {}
 
+    // Kapasite kartı OLAN e-Drive hatları (summary sırasıyla normalize anahtarlar)
+    const eDriveCardOrder = Object.keys(eDriveLineStats);
+
     // 5. ANA MTP VERİLERİ
     const mtpLastRow = Math.max(mtpSheet.getLastRow(), 8);
     const mtpRaw = mtpSheet.getRange(8, 1, mtpLastRow - 7, 100).getValues();
@@ -349,8 +361,20 @@ function getSpreadsheetData() {
       }
 
       const kitRef = String(row[14] || '').trim();  // O sütunu
-      const productFamily = String(row[8] || '').trim().toUpperCase();
-      const eDriveLine = productFamily === 'A05' ? (refToEDriveLine[kitRef.toUpperCase()] || 'E-Drive') : '';
+      // E-Drive: kit O-ref'i e-drive dosyasında varsa, parçanın taban no'su üzerinden
+      // tüm operasyon hatları bulunur; yalnızca kapasite kartı OLAN hatlar (summary
+      // 100-103) summary sırasıyla nest edilmek üzere diziye konur.
+      let eDriveLines = [];
+      const kitUp = kitRef.toUpperCase();
+      if (eDriveRefSet[kitUp]) {
+        const base = (kitUp.match(/^[0-9]+/) || [''])[0];
+        const ops = base ? (eDriveBaseToLines[base] || []) : [];
+        if (ops.length) {
+          eDriveLines = eDriveCardOrder
+            .filter(k => ops.some(op => normLineName(op) === k))
+            .map(k => eDriveLineStats[k].lineName);
+        }
+      }
 
       return {
         kit: kitRef,
@@ -366,7 +390,7 @@ function getSpreadsheetData() {
         diskFamilyGroup: String(row[28] || '').trim(),  // AC sütunu
         dmf: String(row[22] || '').trim(),        // W sütunu
         dmfLine: String(row[23] || '').trim(),    // X sütunu
-        eDriveLine: eDriveLine,
+        eDriveLines: eDriveLines,
         familyGroup: String(row[27] || '').trim(),  // AB sütunu
         customer: String(row[6]  || '').trim(),     // G sütunu — Müşteri bilgisi
         customerName: String(row[7]  || '').trim(), // H sütunu — Müşteri tanımı
@@ -457,7 +481,7 @@ function getLineStats() {
 }
 
 function clearCache() {
-  CacheService.getScriptCache().remove('spreadsheet_data_v29');
+  CacheService.getScriptCache().remove('spreadsheet_data_v30');
   Logger.log('Cache temizlendi. Bir sonraki web app isteği sheet\'ten taze veri okuyacak.');
 }
 
