@@ -182,14 +182,14 @@ function getLayoutImage(fileId) {
 }
 
 function getSpreadsheetData() {
-  const CACHE_KEY = 'spreadsheet_data_v30';
+  const CACHE_KEY = 'spreadsheet_data_v31';
   const cache = CacheService.getScriptCache();
   const cached = cache.get(CACHE_KEY);
   if (cached) {
     try {
       const result = JSON.parse(cached);
       // DMF/PFW istatistiklerini her zaman sheet'ten canlı güncelle (cache'i bypass et)
-      const summarySs = SpreadsheetApp.openById('1HbTImLr13BvtjYb2LfTG2gg42YLmpjLEnJoLGXp4hv8');
+      const summarySs = SpreadsheetApp.openById('1Lx2IniscO0hfdnZi12chv24dooB_pePJtUjKolB97C0');
       const summarySheet = summarySs.getSheetByName('MTP_summary');
       if (summarySheet && result.lineStats) {
         const freshStats = readDmfPfwStats(summarySheet);
@@ -199,8 +199,8 @@ function getSpreadsheetData() {
     } catch (e) { /* cache bozuk, devam et */ }
   }
 
-  const mainSsId = '1c3ObCQTHSi7HBrxDcNWbTA4TRHJiBnRfIpWbevtAemQ';
-  const summarySsId = '1HbTImLr13BvtjYb2LfTG2gg42YLmpjLEnJoLGXp4hv8';
+  const mainSsId = '1SpLc32ad9K7HEMUWdMDNMxIRkKe73qaK0Pxw4SZvARk';
+  const summarySsId = '1Lx2IniscO0hfdnZi12chv24dooB_pePJtUjKolB97C0';
 
   try {
     const mainSs = SpreadsheetApp.openById(mainSsId);
@@ -471,7 +471,7 @@ function readDmfPfwStats(sheet) {
 }
 
 function getLineStats() {
-  const summarySsId = '1HbTImLr13BvtjYb2LfTG2gg42YLmpjLEnJoLGXp4hv8';
+  const summarySsId = '1Lx2IniscO0hfdnZi12chv24dooB_pePJtUjKolB97C0';
   try {
     const sheet = SpreadsheetApp.openById(summarySsId).getSheetByName('MTP_summary');
     return readDmfPfwStats(sheet);
@@ -481,7 +481,7 @@ function getLineStats() {
 }
 
 function clearCache() {
-  CacheService.getScriptCache().remove('spreadsheet_data_v30');
+  CacheService.getScriptCache().remove('spreadsheet_data_v31');
   Logger.log('Cache temizlendi. Bir sonraki web app isteği sheet\'ten taze veri okuyacak.');
 }
 
@@ -541,7 +541,7 @@ function countryFlagUrl(raw) {
 }
 
 function debugDMFRows() {
-  const summarySsId = '1HbTImLr13BvtjYb2LfTG2gg42YLmpjLEnJoLGXp4hv8';
+  const summarySsId = '1Lx2IniscO0hfdnZi12chv24dooB_pePJtUjKolB97C0';
   const sheet = SpreadsheetApp.openById(summarySsId).getSheetByName('MTP_summary');
   const lastRow = sheet.getLastRow();
   const allData = sheet.getRange(2, 1, lastRow - 1, 14).getValues();
@@ -564,7 +564,7 @@ function debugDMFRows() {
 
 // PFW teşhisi: PFW2 adetleri nereye gidiyor? (çakışma / eşleşmeme tespiti)
 function debugPFW() {
-  const mainSsId = '1c3ObCQTHSi7HBrxDcNWbTA4TRHJiBnRfIpWbevtAemQ';
+  const mainSsId = '1SpLc32ad9K7HEMUWdMDNMxIRkKe73qaK0Pxw4SZvARk';
   const mainSs   = SpreadsheetApp.openById(mainSsId);
   const pfwSheet = mainSs.getSheetByName('PFW');
   const mtpSheet = mainSs.getSheetByName('MAIN');
