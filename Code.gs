@@ -206,7 +206,7 @@ function getSpreadsheetData() {
     const mainSs = SpreadsheetApp.openById(mainSsId);
     const summarySs = SpreadsheetApp.openById(summarySsId);
     
-    const mtpSheet = mainSs.getSheetByName('MAIN');
+    const mtpSheet = mainSs.getSheetByName("MTP'27");
     const diagSheet = mainSs.getSheetByName('Diaphragm Line');
     const summarySheet = summarySs.getSheetByName('MTP_summary');
     
@@ -567,7 +567,7 @@ function debugPFW() {
   const mainSsId = '1SpLc32ad9K7HEMUWdMDNMxIRkKe73qaK0Pxw4SZvARk';
   const mainSs   = SpreadsheetApp.openById(mainSsId);
   const pfwSheet = mainSs.getSheetByName('PFW');
-  const mtpSheet = mainSs.getSheetByName('MAIN');
+  const mtpSheet = mainSs.getSheetByName("MTP'27");
 
   // 1) MAIN ürünlerinden DMF ref -> 5 yıl toplam adet
   const mtpLastRow = Math.max(mtpSheet.getLastRow(), 8);
