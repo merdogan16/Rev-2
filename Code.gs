@@ -182,7 +182,7 @@ function getLayoutImage(fileId) {
 }
 
 function getSpreadsheetData() {
-  const CACHE_KEY = 'spreadsheet_data_v31';
+  const CACHE_KEY = 'spreadsheet_data_v32';
   const cache = CacheService.getScriptCache();
   const cached = cache.get(CACHE_KEY);
   if (cached) {
@@ -343,7 +343,7 @@ function getSpreadsheetData() {
     const mtpRaw = mtpSheet.getRange(8, 1, mtpLastRow - 7, 100).getValues();
 
     const formattedData = mtpRaw.map(row => {
-      const rawDiaphragm = String(row[19] || '').trim();  // T sütunu
+      const rawDiaphragm = String(row[36] || '').trim();  // AK sütunu
       let diagFurnaceInfo = '-';
       let diagLines = [];
       if (rawDiaphragm) {
@@ -360,7 +360,7 @@ function getSpreadsheetData() {
         }
       }
 
-      const kitRef = String(row[14] || '').trim();  // O sütunu
+      const kitRef = String(row[40] || '').trim();  // AO sütunu
       // E-Drive: kit O-ref'i e-drive dosyasında varsa, parçanın taban no'su üzerinden
       // tüm operasyon hatları bulunur; yalnızca kapasite kartı OLAN hatlar (summary
       // 100-103) summary sırasıyla nest edilmek üzere diziye konur.
@@ -378,29 +378,29 @@ function getSpreadsheetData() {
 
       return {
         kit: kitRef,
-        ppca: String(row[15] || '').trim(),       // P sütunu
-        ppcaLine: String(row[16] || '').trim(),   // Q sütunu
-        cover: String(row[17] || '').trim(),      // R sütunu
-        coverLine: String(row[18] || '').trim(),  // S sütunu
-        diaphragm: rawDiaphragm,                  // T sütunu
+        ppca: String(row[27] || '').trim(),       // AB sütunu
+        ppcaLine: String(row[26] || '').trim(),   // AA sütunu
+        cover: String(row[37] || '').trim(),      // AL sütunu
+        coverLine: String(row[38] || '').trim(),  // AM sütunu
+        diaphragm: rawDiaphragm,                  // AK sütunu
         diaphragmFurnace: diagFurnaceInfo,
         diaphragmLines: diagLines,
-        disk: String(row[20] || '').trim(),       // U sütunu
-        diskLine: String(row[21] || '').trim(),   // V sütunu
-        diskFamilyGroup: String(row[28] || '').trim(),  // AC sütunu
-        dmf: String(row[22] || '').trim(),        // W sütunu
-        dmfLine: String(row[23] || '').trim(),    // X sütunu
+        disk: String(row[30] || '').trim(),       // AE sütunu
+        diskLine: String(row[29] || '').trim(),   // AD sütunu
+        diskFamilyGroup: String(row[31] || '').trim(),  // AF sütunu
+        dmf: String(row[33] || '').trim(),        // AH sütunu
+        dmfLine: String(row[32] || '').trim(),    // AG sütunu
         eDriveLines: eDriveLines,
-        familyGroup: String(row[27] || '').trim(),  // AB sütunu
-        customer: String(row[6]  || '').trim(),     // G sütunu — Müşteri bilgisi
-        customerName: String(row[7]  || '').trim(), // H sütunu — Müşteri tanımı
-        customerCountry: String(row[13] || '').trim(), // N sütunu — Müşteri ülkesi
-        customerFlag: countryFlagUrl(row[13]),         // N sütunundan üretilen bayrak görseli
-        vol26: Number(row[91]) || 0,   // CN — 2027
-        vol27: Number(row[92]) || 0,   // CO — 2028
-        vol28: Number(row[93]) || 0,   // CP — 2029
-        vol29: Number(row[94]) || 0,   // CQ — 2030
-        vol30: Number(row[95]) || 0    // CR — 2031
+        familyGroup: String(row[28] || '').trim(),  // AC sütunu
+        customer: String(row[5]  || '').trim(),     // F sütunu — Müşteri bilgisi
+        customerName: String(row[6]  || '').trim(), // G sütunu — Müşteri tanımı
+        customerCountry: String(row[12] || '').trim(), // M sütunu — Müşteri ülkesi
+        customerFlag: countryFlagUrl(row[12]),         // M sütunundan üretilen bayrak görseli
+        vol26: Number(row[82]) || 0,   // CE — 2027
+        vol27: Number(row[83]) || 0,   // CF — 2028
+        vol28: Number(row[84]) || 0,   // CG — 2029
+        vol29: Number(row[85]) || 0,   // CH — 2030
+        vol30: Number(row[86]) || 0    // CI — 2031
       };
     }).filter(item => item.kit !== '');
 
@@ -481,7 +481,7 @@ function getLineStats() {
 }
 
 function clearCache() {
-  CacheService.getScriptCache().remove('spreadsheet_data_v31');
+  CacheService.getScriptCache().remove('spreadsheet_data_v32');
   Logger.log('Cache temizlendi. Bir sonraki web app isteği sheet\'ten taze veri okuyacak.');
 }
 
@@ -574,9 +574,9 @@ function debugPFW() {
   const mtpRaw = mtpSheet.getRange(8, 1, mtpLastRow - 7, 100).getValues();
   const volByDmf = {};
   mtpRaw.forEach(row => {
-    const dmf = String(row[22] || '').trim().toUpperCase();   // W
+    const dmf = String(row[33] || '').trim().toUpperCase();   // W
     if (!dmf) return;
-    const v = (Number(row[91])||0)+(Number(row[92])||0)+(Number(row[93])||0)+(Number(row[94])||0)+(Number(row[95])||0);
+    const v = (Number(row[82])||0)+(Number(row[83])||0)+(Number(row[84])||0)+(Number(row[85])||0)+(Number(row[86])||0);
     volByDmf[dmf] = (volByDmf[dmf] || 0) + v;
   });
 
