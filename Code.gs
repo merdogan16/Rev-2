@@ -182,7 +182,7 @@ function getLayoutImage(fileId) {
 }
 
 function getSpreadsheetData() {
-  const CACHE_KEY = 'spreadsheet_data_v32';
+  const CACHE_KEY = 'spreadsheet_data_v33';
   const cache = CacheService.getScriptCache();
   const cached = cache.get(CACHE_KEY);
   if (cached) {
@@ -220,22 +220,22 @@ function getSpreadsheetData() {
     const lineStatsMap = {};
     
     summaryRaw.forEach((row) => {
-      const rawName = String(row[4] || row[3] || '');
+      const rawName = String(row[2] || row[1] || '');
       const fullKey = rawName.replace(/[^A-Z0-9]/gi, '').toUpperCase();
       const stripKey = normLineName(rawName);
       if (fullKey) {
         const val = {
-          cycleTime: row[6] || '-',
-          trp: row[7] || '-',
-          shiftDay: row[8] || '-',
-          annualCapacity: Number(row[13]) || 0
+          cycleTime: row[3] || '-',
+          trp: row[4] || '-',
+          shiftDay: row[5] || '-',
+          annualCapacity: Number(row[10]) || 0
         };
         lineStatsMap[fullKey] = val;
         if (stripKey && stripKey !== fullKey) lineStatsMap[stripKey] = val;
       }
     });
 
-    // DMF/PFW de diğer hatlar gibi isimle okunur; isimle bulunamazsa eski sabit satırlara (70-73/75-78) düşer
+    // DMF/PFW de diğer hatlar gibi isimle okunur; isimle bulunamazsa eski sabit satırlara (50-53/54-57) düşer
     Object.assign(lineStatsMap, readDmfPfwStats(summarySheet));
 
     // 2. DIAPHRAGM FIRIN VERİLERİ
@@ -313,24 +313,24 @@ function getSpreadsheetData() {
       }
     } catch(e) {}
 
-    // 4b. E-DRIVE hat verileri (MTP_summary satır 100-103): E=hat, G/H/I, N=kapasite, S-W=2027-2031 adet
+    // 4b. E-DRIVE hat verileri (MTP_summary satır 97-100): C=hat, D/E/F, K=kapasite, M-Q=2027-2031 adet
     const eDriveLineStats = {};
     try {
-      summarySheet.getRange(100, 1, 4, 23).getValues().forEach(function(r) {
-        const lineName = String(r[4] || '').trim();   // E
+      summarySheet.getRange(97, 1, 4, 17).getValues().forEach(function(r) {
+        const lineName = String(r[2] || '').trim();   // E
         const key = normLineName(lineName);
         if (!key) return;
         eDriveLineStats[key] = {
           lineName:       lineName,
-          cycleTime:      r[6]  || '-',           // G
-          trp:            r[7]  || '-',           // H
-          shiftDay:       r[8]  || '-',           // I
-          annualCapacity: Number(r[13]) || 0,     // N
-          v26: Number(r[18]) || 0,   // S — 2027
-          v27: Number(r[19]) || 0,   // T — 2028
-          v28: Number(r[20]) || 0,   // U — 2029
-          v29: Number(r[21]) || 0,   // V — 2030
-          v30: Number(r[22]) || 0    // W — 2031
+          cycleTime:      r[3]  || '-',           // G
+          trp:            r[4]  || '-',           // H
+          shiftDay:       r[5]  || '-',           // I
+          annualCapacity: Number(r[10]) || 0,     // N
+          v26: Number(r[12]) || 0,   // M — 2027
+          v27: Number(r[13]) || 0,   // N — 2028
+          v28: Number(r[14]) || 0,   // O — 2029
+          v29: Number(r[15]) || 0,   // P — 2030
+          v30: Number(r[16]) || 0    // Q — 2031
         };
       });
     } catch(e) {}
@@ -441,20 +441,20 @@ function readDmfPfwStats(sheet) {
     const lastRow = Math.max(sheet.getLastRow(), 2);
     const data = sheet.getRange(2, 1, lastRow - 1, 14).getValues();
     data.forEach(function(row) {
-      const key = normLineName(row[4]);
+      const key = normLineName(row[2]);
       if (dmfPfwKeys[key]) {
         stats[key] = {
-          cycleTime:      row[6] || '-',
-          trp:            row[7] || '-',
-          shiftDay:       row[8] || '-',
-          annualCapacity: Number(row[13]) || 0
+          cycleTime:      row[3] || '-',
+          trp:            row[4] || '-',
+          shiftDay:       row[5] || '-',
+          annualCapacity: Number(row[10]) || 0
         };
       }
     });
   } catch(e) {}
-  [70, 75].forEach(function(startRow, gi) {
+  [50, 54].forEach(function(startRow, gi) {
     try {
-      sheet.getRange(startRow, 7, 4, 8).getValues().forEach(function(r, i) {
+      sheet.getRange(startRow, 4, 4, 8).getValues().forEach(function(r, i) {
         const key = fixedLineNames[gi][i];
         if (!stats[key]) {
           stats[key] = {
@@ -481,7 +481,7 @@ function getLineStats() {
 }
 
 function clearCache() {
-  CacheService.getScriptCache().remove('spreadsheet_data_v32');
+  CacheService.getScriptCache().remove('spreadsheet_data_v33');
   Logger.log('Cache temizlendi. Bir sonraki web app isteği sheet\'ten taze veri okuyacak.');
 }
 
@@ -549,16 +549,16 @@ function debugDMFRows() {
   Logger.log('=== MTP_summary içinde DMF key üreten TÜM satırlar ===');
   allData.forEach((row, idx) => {
     const rowNum = idx + 2;
-    const rawName = String(row[4] || row[3] || '');
+    const rawName = String(row[2] || row[1] || '');
     const key = normLineName(rawName);
     if (key.startsWith('DMF')) {
-      Logger.log('Satır ' + rowNum + ': D=' + row[3] + ' E=' + row[4] + ' key=' + key +
-        ' CT=' + row[6] + ' TRP=' + row[7] + ' SD=' + row[8] + ' Cap=' + row[13]);
+      Logger.log('Satır ' + rowNum + ': B=' + row[1] + ' C=' + row[2] + ' key=' + key +
+        ' CT=' + row[3] + ' TRP=' + row[4] + ' SD=' + row[5] + ' Cap=' + row[10]);
     }
   });
-  Logger.log('=== Explicit blok (D70:N73) ===');
-  sheet.getRange(70, 4, 4, 11).getValues().forEach((r, i) => {
-    Logger.log('Satır ' + (70+i) + ': D=' + r[0] + ' CT=' + r[3] + ' TRP=' + r[4] + ' Cap=' + r[10]);
+  Logger.log('=== Explicit blok (B50:K53) ===');
+  sheet.getRange(50, 2, 4, 10).getValues().forEach((r, i) => {
+    Logger.log('Satır ' + (50+i) + ': B=' + r[0] + ' CT=' + r[2] + ' TRP=' + r[3] + ' Cap=' + r[9]);
   });
 }
 
