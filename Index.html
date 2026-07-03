@@ -1630,6 +1630,16 @@
               edRefsHtml = `<div class="mt-4 pt-4 border-t border-slate-200/70 dark:border-slate-700/60"><div class="flex items-center gap-2 mb-2.5"><span class="text-xs font-bold text-slate-500 uppercase tracking-wider">${t('references')}</span><span class="text-xs font-black text-teal-600 dark:text-teal-400">${_erefs.length}</span></div><div class="flex flex-wrap gap-1.5 max-h-44 overflow-y-auto">${_echips}</div></div>`;
             }
           }
+          // e-Drive hat karti: CT/TRP/vardiya istatistikleri (kapasiteyle ayni kaynak: lineStats)
+          let edStatsHtml = '';
+          if (lv.type === 'EDrive') {
+            const _st = lineStats[normalizedKey] || {};
+            const _ct = (_st.cycleTime != null && _st.cycleTime !== '') ? _st.cycleTime : '-';
+            const _sd = (_st.shiftDay != null && _st.shiftDay !== '') ? _st.shiftDay : '-';
+            let _trp = (_st.trp != null && _st.trp !== '') ? _st.trp : '-';
+            if (_trp !== '-') { let _n = Number(_trp); if (!isNaN(_n)) { if (_n <= 1 && _n > 0) _n *= 100; _trp = parseFloat(_n.toFixed(1)) + '%'; } else if (!String(_trp).includes('%')) { _trp = String(_trp) + '%'; } }
+            edStatsHtml = `<div class="grid grid-cols-3 gap-2 sm:gap-3 mb-4"><div class="stat-pill p-3 rounded-xl text-center"><span class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Cycle Time</span><span class="font-black text-base sm:text-lg text-slate-700 dark:text-slate-200">${escapeHtml(String(_ct))}</span></div><div class="stat-pill p-3 rounded-xl text-center"><span class="block text-[10px] font-bold uppercase text-slate-500 mb-1">TRP</span><span class="font-black text-base sm:text-lg text-slate-700 dark:text-slate-200">${escapeHtml(String(_trp))}</span></div><div class="stat-pill p-3 rounded-xl text-center"><span class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Shift / Day</span><span class="font-black text-base sm:text-lg text-slate-700 dark:text-slate-200">${escapeHtml(String(_sd))}</span></div></div>`;
+          }
           card.innerHTML = `
             <div class="flex flex-wrap items-center gap-3 mb-4">
               <span class="px-3 py-1 text-sm rounded-md font-bold ${badgeClass}">${lv.type === 'SG' ? 'Spring Guide' : lv.type === 'DP' ? 'Drive Plate' : lv.type === 'Disk' ? 'Disc' : lv.type}</span>
@@ -1638,6 +1648,7 @@
               ${capacity > 0 ? `<span class="text-xs text-slate-500 font-medium">${t('annualCapacity')} ${fmt(capacity)}</span>` : ''}
               ${lvDocsUrl ? `<a href="${lvDocsUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="ml-auto flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md font-bold bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:bg-blue-50 dark:hover:bg-slate-600 hover:text-blue-600 dark:hover:text-blue-300 hover:border-blue-300 transition-all"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>${t('documents')}</a>` : ''}
             </div>
+            ${edStatsHtml}
             <div class="grid grid-cols-5 gap-1 sm:gap-2 text-center">
               ${[['2027',lv.v26,0],['2028',lv.v27,1],['2029',lv.v28,2],['2030',lv.v29,3],['2031',lv.v30,4]].map(([yr,val,idx]) => {
                 const pct = lv.type === 'DMF' && lv.occ26 !== undefined ? [lv.occ26,lv.occ27,lv.occ28,lv.occ29,lv.occ30][idx] : capacity > 0 ? (val / capacity) * 100 : -1;
