@@ -2248,7 +2248,11 @@
 
       const chartData = [];  // { idx, occs }
 
-      wrap.innerHTML = list.map((key, idx) => {
+      // ==== GECICI TESHIS SERIDI (sonra kaldirilacak) ====
+      const _dbgMatch = list.map(k => k + '=' + eDriveData.filter(e => lineKeyVD(String(e.line || '')) === k).length).join(' | ');
+      const _dbg = `<div style="background:#fde047;color:#111;padding:8px 10px;font-size:12px;font-weight:bold;border-radius:8px;margin-bottom:10px;word-break:break-all">DEBUG • eDriveData: ${(eDriveData || []).length} kayit • keys: ${list.join(',')} • eslesme: ${_dbgMatch}</div>`;
+
+      wrap.innerHTML = _dbg + list.map((key, idx) => {
         const stats = eDriveLineStats[key] || { lineName: '', cycleTime: '-', trp: '-', shiftDay: '-', annualCapacity: 0, v26:0, v27:0, v28:0, v29:0, v30:0 };
         const cap = stats.annualCapacity;
         const lineLabel = stats.lineName || '';
