@@ -1368,11 +1368,9 @@
         const pLineRaw = String(d.ppcaLine  || '').trim();
         const dLineRaw = String(d.diskLine  || '').trim();
         const mLineRaw = String(d.dmfLine   || '').trim();
-        const eLines = (d.eDriveLines || []);
         const pLine = pLineRaw.toLowerCase();
         const dLine = dLineRaw.toLowerCase();
         const mLine = mLineRaw.toLowerCase();
-        const eLineMatch = eLines.filter(l => String(l).toLowerCase().includes(termLower));
 
         if (!isAllPPCA && !isAllDisk && !isAllDMF && !isAllEDrive && !isAllPFW && !isAllSG && !isAllDP) {
           if (pLine.includes(termLower) && d.ppca) {
@@ -1386,10 +1384,6 @@
           if (mLineRaw !== '-' && mLine.includes(termLower) && d.dmf) {
             if (!uniqueResults.has('DMF-' + d.dmf))
               uniqueResults.set('DMF-' + d.dmf, { type: 'DMF', label: `DMF (${d.dmfLine})`, value: d.dmf, kit: d.kit });
-          }
-          if (eLineMatch.length && d.kit) {
-            if (!uniqueResults.has('EDrive-' + d.kit))
-              uniqueResults.set('EDrive-' + d.kit, { type: 'EDrive', label: `E-Drive (${eLineMatch[0]})`, value: d.kit, kit: d.kit });
           }
           const _pd = d.dmf ? pfwMap[d.dmf.toUpperCase()] : null;
           if (_pd) {
