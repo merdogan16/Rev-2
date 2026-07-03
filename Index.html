@@ -2242,7 +2242,9 @@
       eDriveChartInstances = [];
       wrap.innerHTML = '';
 
-      const list = (eDriveLines || []).filter(Boolean);
+      // Hatlar: kapasite kartı olan e-Drive hatları (MTP_summary'den gelen eDriveLineStats).
+      // Referanslar aşağıda e-drive A/B (eDriveData) üzerinden hatla eşleştirilir; MAIN gerekmez.
+      const list = Object.keys(eDriveLineStats);
       if (!list.length) return;
 
       const isDark    = document.documentElement.classList.contains('dark');
@@ -2252,11 +2254,14 @@
 
       const chartData = [];  // { idx, occs }
 
-      wrap.innerHTML = list.map((eDriveLine, idx) => {
-        const key = lineKeyVD(eDriveLine || '');
-        const stats = eDriveLineStats[key] || { lineName: eDriveLine, cycleTime: '-', trp: '-', shiftDay: '-', annualCapacity: 0, v26:0, v27:0, v28:0, v29:0, v30:0 };
+      wrap.innerHTML = list.map((key, idx) => {
+        const stats = eDriveLineStats[key] || { lineName: '', cycleTime: '-', trp: '-', shiftDay: '-', annualCapacity: 0, v26:0, v27:0, v28:0, v29:0, v30:0 };
         const cap = stats.annualCapacity;
-        const lineLabel = stats.lineName || eDriveLine || '';
+        const lineLabel = stats.lineName || '';
+        // Bu hatta ait tüm referanslar: e-drive A sütunu (B'si bu hatla eşleşen satırlar)
+        const refs = [...new Set(eDriveData.filter(e => lineKeyVD(String(e.line || '')) === key).map(e => String(e.ref || '')).filter(Boolean))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+        const refChips = refs.map(r => `<span class="px-2 py-1 text-xs rounded-md bg-slate-100 dark:bg-slate-700/60 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 font-medium">${escapeHtml(r)}</span>`).join('');
+        const refsHtml = refs.length ? `<div class="glass-panel rounded-xl p-4"><div class="flex items-center gap-2 mb-2.5"><span class="text-xs font-bold text-slate-500 uppercase tracking-wider">${t('references')}</span><span class="text-xs font-black text-teal-600 dark:text-teal-400">${refs.length}</span></div><div class="flex flex-wrap gap-1.5 max-h-44 overflow-y-auto">${refChips}</div></div>` : '';
 
         let trpFormatted = stats.trp;
         if (stats.trp !== '-') {
@@ -2309,6 +2314,7 @@
             </div>
             <div class="relative w-full h-56 mt-2"><canvas id="eDriveChart_${idx}"></canvas></div>
           </div>
+          ${refsHtml}
         </div>`;
       }).join('');
 
