@@ -1383,7 +1383,7 @@
             if (!uniqueResults.has('Disk-' + d.disk))
               uniqueResults.set('Disk-' + d.disk, { type: 'Disk', label: `Disc (${d.diskLine})`, value: d.disk, kit: d.kit });
           }
-          if (mLine.includes(termLower) && d.dmf) {
+          if (mLineRaw !== '-' && mLine.includes(termLower) && d.dmf) {
             if (!uniqueResults.has('DMF-' + d.dmf))
               uniqueResults.set('DMF-' + d.dmf, { type: 'DMF', label: `DMF (${d.dmfLine})`, value: d.dmf, kit: d.kit });
           }
@@ -1409,13 +1409,13 @@
         }
 
         if (isAllPPCA) {
-          if (pLineRaw) {
+          if (pLineRaw && pLineRaw !== '-') {
             const key = 'PPCA:' + pLineRaw.replace(/\s+/g, '').toUpperCase();
             if (!lineVolumes.has(key)) lineVolumes.set(key, { type: 'PPCA', lineName: pLineRaw, v26:0, v27:0, v28:0, v29:0, v30:0 });
             const lv = lineVolumes.get(key); lv.v26+=d.vol26; lv.v27+=d.vol27; lv.v28+=d.vol28; lv.v29+=d.vol29; lv.v30+=d.vol30;
           }
         } else if (isAllDisk) {
-          if (dLineRaw) {
+          if (dLineRaw && dLineRaw !== '-') {
             const key = 'Disk:' + dLineRaw.replace(/\s+/g, '').toUpperCase();
             if (!lineVolumes.has(key)) lineVolumes.set(key, { type: 'Disk', lineName: dLineRaw, v26:0, v27:0, v28:0, v29:0, v30:0 });
             const lv = lineVolumes.get(key); lv.v26+=d.vol26; lv.v27+=d.vol27; lv.v28+=d.vol28; lv.v29+=d.vol29; lv.v30+=d.vol30;
@@ -1444,18 +1444,18 @@
             }
           }
         } else {
-          if (pLine.includes(termLower) && pLineRaw) {
+          if (pLine.includes(termLower) && pLineRaw && pLineRaw !== '-') {
             const key = 'PPCA:' + pLineRaw.replace(/\s+/g, '').toUpperCase();
             if (!lineVolumes.has(key)) lineVolumes.set(key, { type: 'PPCA', lineName: pLineRaw, v26:0, v27:0, v28:0, v29:0, v30:0 });
             const lv = lineVolumes.get(key); lv.v26+=d.vol26; lv.v27+=d.vol27; lv.v28+=d.vol28; lv.v29+=d.vol29; lv.v30+=d.vol30;
           }
-          if (dLine.includes(termLower) && dLineRaw) {
+          if (dLine.includes(termLower) && dLineRaw && dLineRaw !== '-') {
             const key = 'Disk:' + dLineRaw.replace(/\s+/g, '').toUpperCase();
             if (!lineVolumes.has(key)) lineVolumes.set(key, { type: 'Disk', lineName: dLineRaw, v26:0, v27:0, v28:0, v29:0, v30:0 });
             const lv = lineVolumes.get(key); lv.v26+=d.vol26; lv.v27+=d.vol27; lv.v28+=d.vol28; lv.v29+=d.vol29; lv.v30+=d.vol30;
           }
           const dmfLineRaw = String(d.dmfLine || '').trim();
-          if (dmfLineRaw.toLowerCase().includes(termLower)) {
+          if (dmfLineRaw && dmfLineRaw !== '-' && dmfLineRaw.toLowerCase().includes(termLower)) {
             const key = 'DMF:' + dmfLineRaw.replace(/\s+/g, '').toUpperCase();
             if (!lineVolumes.has(key)) lineVolumes.set(key, { type: 'DMF', lineName: dmfLineRaw, v26:0, v27:0, v28:0, v29:0, v30:0 });
             const lv = lineVolumes.get(key); lv.v26+=d.vol26; lv.v27+=d.vol27; lv.v28+=d.vol28; lv.v29+=d.vol29; lv.v30+=d.vol30;
@@ -1535,7 +1535,7 @@
       if (isAllDMF) {
         globalData.forEach(d => {
           const dmfLineRaw = String(d.dmfLine || '').trim();
-          if (!dmfLineRaw) return;
+          if (!dmfLineRaw || dmfLineRaw === '-') return;
           const key = 'DMF:' + lineKey(dmfLineRaw);
           if (!lineVolumes.has(key)) lineVolumes.set(key, { type: 'DMF', lineName: dmfLineRaw, v26:0, v27:0, v28:0, v29:0, v30:0 });
           const lv = lineVolumes.get(key);
@@ -1976,7 +1976,7 @@
       const dmfLineBadgeEl = document.getElementById('dmf-line-badge');
       const dmfLayoutBtn   = document.getElementById('dmf-layout-btn');
       const dmfDocsBtn     = document.getElementById('dmf-docs-btn');
-      if (data.dmfLine) {
+      if (data.dmfLine && data.dmfLine !== '-') {
         dmfLineBadgeEl.textContent = data.dmfLine;
         dmfLineBadgeEl.classList.remove('hidden');
         dmfLineBadgeEl.onclick = () => {
