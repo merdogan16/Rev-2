@@ -1620,6 +1620,16 @@
             closeSidebarOnMobile();
           };
           const lvDocsUrl = LINE_DOCS[lineKey(lv.lineName)];
+          // e-Drive hat kartlarina, o hatta ait e-drive referanslarini (A sutunu) ekle
+          let edRefsHtml = '';
+          if (lv.type === 'EDrive') {
+            const _ek = lineKeyVD(lv.lineName);
+            const _erefs = [...new Set(eDriveData.filter(e => lineKeyVD(String(e.line || '')) === _ek).map(e => String(e.ref || '')).filter(Boolean))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+            if (_erefs.length) {
+              const _echips = _erefs.map(r => `<span class="px-2 py-1 text-xs rounded-md bg-white/70 dark:bg-slate-900/40 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 font-medium">${escapeHtml(r)}</span>`).join('');
+              edRefsHtml = `<div class="mt-4 pt-4 border-t border-slate-200/70 dark:border-slate-700/60"><div class="flex items-center gap-2 mb-2.5"><span class="text-xs font-bold text-slate-500 uppercase tracking-wider">${t('references')}</span><span class="text-xs font-black text-teal-600 dark:text-teal-400">${_erefs.length}</span></div><div class="flex flex-wrap gap-1.5 max-h-44 overflow-y-auto">${_echips}</div></div>`;
+            }
+          }
           card.innerHTML = `
             <div class="flex flex-wrap items-center gap-3 mb-4">
               <span class="px-3 py-1 text-sm rounded-md font-bold ${badgeClass}">${lv.type === 'SG' ? 'Spring Guide' : lv.type === 'DP' ? 'Drive Plate' : lv.type === 'Disk' ? 'Disc' : lv.type}</span>
@@ -1643,7 +1653,8 @@
                 const pctBadge = pct >= 0 ? `<span class="block text-[10px] sm:text-xs font-bold mt-0.5 ${text}">%${pct.toFixed(0)}</span><div class="mt-1 h-1 rounded-full bg-slate-200/70 dark:bg-slate-600/50"><div class="${barColor} h-1 rounded-full" style="width:${Math.min(pct,100).toFixed(0)}%"></div></div>` : '';
                 return `<div class="${bg} rounded-lg p-1.5 sm:p-3 border ${border} shadow-sm"><span class="block text-[10px] sm:text-xs text-slate-500 font-bold mb-0.5">${yr}</span><span class="font-black text-xs sm:text-base ${text}">${fmt(val)}</span>${pctBadge}</div>`;
               }).join('')}
-            </div>`;
+            </div>
+            ${edRefsHtml}`;
           lineSummaryEl.appendChild(card);
         });
         lineSummaryEl.classList.remove('hidden');
@@ -2248,11 +2259,7 @@
 
       const chartData = [];  // { idx, occs }
 
-      // ==== GECICI TESHIS SERIDI (sonra kaldirilacak) ====
-      const _dbgMatch = list.map(k => k + '=' + eDriveData.filter(e => lineKeyVD(String(e.line || '')) === k).length).join(' | ');
-      const _dbg = `<div style="background:#fde047;color:#111;padding:8px 10px;font-size:12px;font-weight:bold;border-radius:8px;margin-bottom:10px;word-break:break-all">DEBUG • eDriveData: ${(eDriveData || []).length} kayit • keys: ${list.join(',')} • eslesme: ${_dbgMatch}</div>`;
-
-      wrap.innerHTML = _dbg + list.map((key, idx) => {
+      wrap.innerHTML = list.map((key, idx) => {
         const stats = eDriveLineStats[key] || { lineName: '', cycleTime: '-', trp: '-', shiftDay: '-', annualCapacity: 0, v26:0, v27:0, v28:0, v29:0, v30:0 };
         const cap = stats.annualCapacity;
         const lineLabel = stats.lineName || '';
