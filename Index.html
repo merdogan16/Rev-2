@@ -642,6 +642,7 @@
     let diskChartInstance = null;
     let dmfChartInstance = null;
     let eDriveChartInstances = [];
+    let edSearchChartInstances = [];
     let navHistory = [];
     let lang = localStorage.getItem('dashLang') || 'tr';
 
@@ -1593,7 +1594,10 @@
         renderDiskGroupOverview(lineSummaryEl, lineVolumesArray);
       } else if (displayVolumes.length > 0) {
         lineSummaryEl.innerHTML = `<h4 class="text-sm font-bold text-slate-500 uppercase tracking-wider">${t('lineProdSummary')}</h4>`;
-        displayVolumes.forEach(lv => {
+        edSearchChartInstances.forEach(c => { try { c.destroy(); } catch (e) {} });
+        edSearchChartInstances = [];
+        const edSearchChartData = [];  // { idx, occs }
+        displayVolumes.forEach((lv, lvIdx) => {
           const badgeClass = lv.type === 'PPCA'
             ? 'bg-[#dcfce7] dark:bg-green-900/40 text-slate-700 dark:text-green-300 border border-[#bbf7d0] dark:border-green-800/50'
             : lv.type === 'Disk'
@@ -1640,6 +1644,13 @@
             if (_trp !== '-') { let _n = Number(_trp); if (!isNaN(_n)) { if (_n <= 1 && _n > 0) _n *= 100; _trp = parseFloat(_n.toFixed(1)) + '%'; } else if (!String(_trp).includes('%')) { _trp = String(_trp) + '%'; } }
             edStatsHtml = `<div class="grid grid-cols-3 gap-2 sm:gap-3 mb-4"><div class="stat-pill p-3 rounded-xl text-center"><span class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Cycle Time</span><span class="font-black text-base sm:text-lg text-slate-700 dark:text-slate-200">${escapeHtml(String(_ct))}</span></div><div class="stat-pill p-3 rounded-xl text-center"><span class="block text-[10px] font-bold uppercase text-slate-500 mb-1">TRP</span><span class="font-black text-base sm:text-lg text-slate-700 dark:text-slate-200">${escapeHtml(String(_trp))}</span></div><div class="stat-pill p-3 rounded-xl text-center"><span class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Shift / Day</span><span class="font-black text-base sm:text-lg text-slate-700 dark:text-slate-200">${escapeHtml(String(_sd))}</span></div></div>`;
           }
+          // e-Drive hat karti: yillik doluluk grafigi (PPCA/Disk kartlariyla ayni; adet summary M-Q, oran adet/kapasite)
+          let edChartHtml = '';
+          if (lv.type === 'EDrive') {
+            const _occs = [lv.v26, lv.v27, lv.v28, lv.v29, lv.v30].map(v => capacity > 0 ? (v / capacity) * 100 : 0);
+            edSearchChartData.push({ idx: lvIdx, occs: _occs });
+            edChartHtml = `<div class="glass-panel rounded-xl p-5 flex flex-col mt-4"><div class="flex justify-between items-end mb-4"><span class="text-sm font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">${t('annualChart')}</span><span class="text-xs font-bold text-slate-500">${t('annualCapacity')} <span class="text-slate-800 dark:text-white">${fmt(capacity)}</span></span></div><div class="relative w-full h-56 mt-2"><canvas id="edSearchChart_${lvIdx}"></canvas></div></div>`;
+          }
           card.innerHTML = `
             <div class="flex flex-wrap items-center gap-3 mb-4">
               <span class="px-3 py-1 text-sm rounded-md font-bold ${badgeClass}">${lv.type === 'SG' ? 'Spring Guide' : lv.type === 'DP' ? 'Drive Plate' : lv.type === 'Disk' ? 'Disc' : lv.type}</span>
@@ -1665,10 +1676,51 @@
                 return `<div class="${bg} rounded-lg p-1.5 sm:p-3 border ${border} shadow-sm"><span class="block text-[10px] sm:text-xs text-slate-500 font-bold mb-0.5">${yr}</span><span class="font-black text-xs sm:text-base ${text}">${fmt(val)}</span>${pctBadge}</div>`;
               }).join('')}
             </div>
+            ${edChartHtml}
             ${edRefsHtml}`;
           lineSummaryEl.appendChild(card);
         });
         lineSummaryEl.classList.remove('hidden');
+        // e-Drive arama hat kartlari icin yillik doluluk grafiklerini olustur (PPCA/Disk ile ayni)
+        if (edSearchChartData.length) {
+          const isDark    = document.documentElement.classList.contains('dark');
+          const textColor = isDark ? '#cbd5e1' : '#475569';
+          const gridColor = isDark ? '#334155' : '#e2e8f0';
+          const baseColor = '#14b8a6';
+          edSearchChartData.forEach(({ idx, occs }) => {
+            const cv = document.getElementById('edSearchChart_' + idx);
+            if (!cv) return;
+            const bgColors = occs.map(p => { const r = Math.round(p); return r >= 115 ? '#ef4444' : r >= 101 ? '#eab308' : '#22c55e'; });
+            edSearchChartInstances.push(new Chart(cv.getContext('2d'), {
+              type: 'bar',
+              data: {
+                labels: ['2027','2028','2029','2030','2031'],
+                datasets: [
+                  { data: occs, backgroundColor: bgColors, borderRadius: 6, borderSkipped: false, barPercentage: 0.7, datalabels: { display: true } },
+                  { type: 'line', data: occs, borderColor: baseColor + 'bb', borderWidth: 2, pointBackgroundColor: baseColor, pointBorderColor: 'transparent', pointRadius: 4, tension: 0.4, fill: false, datalabels: { display: false } }
+                ]
+              },
+              options: {
+                responsive: true, maintainAspectRatio: false, layout: { padding: { top: 30 } },
+                plugins: {
+                  legend: { display: false },
+                  tooltip: {
+                    backgroundColor: isDark ? '#1e293b' : '#ffffff', titleColor: isDark ? '#ffffff' : '#0f172a',
+                    bodyColor: isDark ? '#cbd5e1' : '#475569', borderColor: isDark ? '#334155' : '#cbd5e1',
+                    borderWidth: 1, padding: 12, displayColors: false,
+                    titleFont: { size: 14 }, bodyFont: { size: 15, weight: 'bold' },
+                    callbacks: { label: (context) => t('tooltipLabel')(context.raw) }
+                  },
+                  datalabels: { anchor: 'end', align: 'top', color: textColor, font: { weight: 'bold', size: 14 }, formatter: (value) => t('datalabelFmt')(value) }
+                },
+                scales: {
+                  x: { grid: { display: false }, border: { display: false }, ticks: { color: textColor, font: { weight: 'bold', size: 14 } } },
+                  y: { beginAtZero: true, suggestedMax: 100, grid: { color: gridColor }, border: { display: false }, ticks: { color: textColor, font: { size: 12 }, callback: (value) => value + '%' } }
+                }
+              }
+            }));
+          });
+        }
       } else {
         lineSummaryEl.innerHTML = '';
         lineSummaryEl.classList.add('hidden');
