@@ -387,7 +387,7 @@
               <span id="kd-cust-name" class="text-xs font-bold text-slate-700 dark:text-slate-200"></span>
             </div>
           </div>
-          <div class="w-full xl:w-auto xl:min-w-[450px]">
+          <div id="kd-yearly-block" class="w-full xl:w-auto xl:min-w-[450px]">
             <h3 data-i18n="annualVolume" class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 xl:text-right">Bu Kit İçin Yıllık Üretim Beklentisi (Adet)</h3>
             <div class="grid grid-cols-5 gap-1 sm:gap-2 text-center">
               <div class="stat-pill rounded-lg p-1.5 sm:p-3"><span class="block text-[10px] sm:text-xs text-slate-500 font-bold mb-0.5">2027</span><span id="kd-kit-v26" class="font-black text-xs sm:text-base text-slate-800 dark:text-slate-200">0</span><span id="kd-kit-t26" class="block text-[9px] font-bold mt-0.5 text-slate-400"></span></div>
@@ -642,7 +642,6 @@
     let diskChartInstance = null;
     let dmfChartInstance = null;
     let eDriveChartInstances = [];
-    let edSearchChartInstances = [];
     let navHistory = [];
     let lang = localStorage.getItem('dashLang') || 'tr';
 
@@ -1171,6 +1170,12 @@
         els.kitSelect.value = '';
         els.compSearch.value = prev.term;
         renderCompSearchResults(prev.term, false);
+      } else if (prev.view === 'edref') {
+        ppcaGroupFilter = null;
+        diskGroupFilter = null;
+        els.kitSelect.value = '';
+        els.compSearch.value = '';
+        renderEDriveRefDetail(prev.ref, false);
       }
     });
 
@@ -1182,6 +1187,7 @@
 
     function navHistoryLabel(entry) {
       if (entry.view === 'kit')         return t('breadcrumbKit')(entry.kit);
+      if (entry.view === 'edref')       return t('breadcrumbKit')(entry.ref);
       if (entry.view === 'search')      return t('breadcrumbSearch')(entry.term);
       if (entry.view === 'ppca-group')  { const g = PPCA_GROUPS[entry.group]; return g ? (g[lang] || g.tr) : entry.group; }
       if (entry.view === 'disk-group')  { const g = DISK_GROUPS[entry.group]; return g ? (g[lang] || g.tr) : entry.group; }
@@ -1197,6 +1203,10 @@
         els.compSearch.value = '';
         els.kitSelect.value  = entry.kit;
         renderDetails(entry.kit, false);
+      } else if (entry.view === 'edref') {
+        els.compSearch.value = '';
+        els.kitSelect.value  = '';
+        renderEDriveRefDetail(entry.ref, false);
       } else if (entry.view === 'search') {
         els.kitSelect.value  = '';
         els.compSearch.value = entry.term;
@@ -1553,10 +1563,8 @@
             [...new Set(eDriveData.filter(e => lineKeyVD(String(e.line || '')) === k).map(e => String(e.ref || '')).filter(Boolean))]
               .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
               .forEach(r => {
-                if (!uniqueResults.has('EDrive-' + r)) {
-                  const mk = globalData.find(d => String(d.kit).toUpperCase() === r.toUpperCase());
-                  uniqueResults.set('EDrive-' + r, { type: 'EDrive', label: `E-Drive (${s.lineName})`, value: r, kit: mk ? mk.kit : r });
-                }
+                if (!uniqueResults.has('EDrive-' + r))
+                  uniqueResults.set('EDrive-' + r, { type: 'EDrive', label: `E-Drive (${s.lineName})`, value: r, kit: r });
               });
           }
         });
@@ -1604,10 +1612,7 @@
         renderDiskGroupOverview(lineSummaryEl, lineVolumesArray);
       } else if (displayVolumes.length > 0) {
         lineSummaryEl.innerHTML = `<h4 class="text-sm font-bold text-slate-500 uppercase tracking-wider">${t('lineProdSummary')}</h4>`;
-        edSearchChartInstances.forEach(c => { try { c.destroy(); } catch (e) {} });
-        edSearchChartInstances = [];
-        const edSearchChartData = [];  // { idx, occs }
-        displayVolumes.forEach((lv, lvIdx) => {
+        displayVolumes.forEach(lv => {
           const badgeClass = lv.type === 'PPCA'
             ? 'bg-[#dcfce7] dark:bg-green-900/40 text-slate-700 dark:text-green-300 border border-[#bbf7d0] dark:border-green-800/50'
             : lv.type === 'Disk'
@@ -1634,25 +1639,9 @@
             closeSidebarOnMobile();
           };
           const lvDocsUrl = LINE_DOCS[lineKey(lv.lineName)];
-          // e-Drive referanslari artik hat kartinin icinde cip olarak degil, PPCA/Disk gibi
-          // asagida ayri kartlar olarak listelenir (uniqueResults -> resultsContainer).
-          // e-Drive hat karti: CT/TRP/vardiya istatistikleri (kapasiteyle ayni kaynak: lineStats)
-          let edStatsHtml = '';
-          if (lv.type === 'EDrive') {
-            const _st = lineStats[normalizedKey] || {};
-            const _ct = (_st.cycleTime != null && _st.cycleTime !== '') ? _st.cycleTime : '-';
-            const _sd = (_st.shiftDay != null && _st.shiftDay !== '') ? _st.shiftDay : '-';
-            let _trp = (_st.trp != null && _st.trp !== '') ? _st.trp : '-';
-            if (_trp !== '-') { let _n = Number(_trp); if (!isNaN(_n)) { if (_n <= 1 && _n > 0) _n *= 100; _trp = parseFloat(_n.toFixed(1)) + '%'; } else if (!String(_trp).includes('%')) { _trp = String(_trp) + '%'; } }
-            edStatsHtml = `<div class="grid grid-cols-3 gap-2 sm:gap-3 mb-4"><div class="stat-pill p-3 rounded-xl text-center"><span class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Cycle Time</span><span class="font-black text-base sm:text-lg text-slate-700 dark:text-slate-200">${escapeHtml(String(_ct))}</span></div><div class="stat-pill p-3 rounded-xl text-center"><span class="block text-[10px] font-bold uppercase text-slate-500 mb-1">TRP</span><span class="font-black text-base sm:text-lg text-slate-700 dark:text-slate-200">${escapeHtml(String(_trp))}</span></div><div class="stat-pill p-3 rounded-xl text-center"><span class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Shift / Day</span><span class="font-black text-base sm:text-lg text-slate-700 dark:text-slate-200">${escapeHtml(String(_sd))}</span></div></div>`;
-          }
-          // e-Drive hat karti: yillik doluluk grafigi (PPCA/Disk kartlariyla ayni; adet summary M-Q, oran adet/kapasite)
-          let edChartHtml = '';
-          if (lv.type === 'EDrive') {
-            const _occs = [lv.v26, lv.v27, lv.v28, lv.v29, lv.v30].map(v => capacity > 0 ? (v / capacity) * 100 : 0);
-            edSearchChartData.push({ idx: lvIdx, occs: _occs });
-            edChartHtml = `<div class="glass-panel rounded-xl p-5 flex flex-col mt-4"><div class="flex justify-between items-end mb-4"><span class="text-sm font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">${t('annualChart')}</span><span class="text-xs font-bold text-slate-500">${t('annualCapacity')} <span class="text-slate-800 dark:text-white">${fmt(capacity)}</span></span></div><div class="relative w-full h-56 mt-2"><canvas id="edSearchChart_${lvIdx}"></canvas></div></div>`;
-          }
+          // e-Drive hat karti PPCA/Disk ile ayni: sadece hat adi + yillik doluluk izgarasi.
+          // CT/TRP/vardiya ve grafik bu ekranda DEGIL, referansa tiklayinca acilan detayda gosterilir.
+          // Referanslar da asagida ayri kartlar olarak listelenir (uniqueResults -> resultsContainer).
           card.innerHTML = `
             <div class="flex flex-wrap items-center gap-3 mb-4">
               <span class="px-3 py-1 text-sm rounded-md font-bold ${badgeClass}">${lv.type === 'SG' ? 'Spring Guide' : lv.type === 'DP' ? 'Drive Plate' : lv.type === 'Disk' ? 'Disc' : lv.type}</span>
@@ -1661,7 +1650,6 @@
               ${capacity > 0 ? `<span class="text-xs text-slate-500 font-medium">${t('annualCapacity')} ${fmt(capacity)}</span>` : ''}
               ${lvDocsUrl ? `<a href="${lvDocsUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="ml-auto flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md font-bold bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:bg-blue-50 dark:hover:bg-slate-600 hover:text-blue-600 dark:hover:text-blue-300 hover:border-blue-300 transition-all"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>${t('documents')}</a>` : ''}
             </div>
-            ${edStatsHtml}
             <div class="grid grid-cols-5 gap-1 sm:gap-2 text-center">
               ${[['2027',lv.v26,0],['2028',lv.v27,1],['2029',lv.v28,2],['2030',lv.v29,3],['2031',lv.v30,4]].map(([yr,val,idx]) => {
                 const pct = lv.type === 'DMF' && lv.occ26 !== undefined ? [lv.occ26,lv.occ27,lv.occ28,lv.occ29,lv.occ30][idx] : capacity > 0 ? (val / capacity) * 100 : -1;
@@ -1677,51 +1665,10 @@
                 const pctBadge = pct >= 0 ? `<span class="block text-[10px] sm:text-xs font-bold mt-0.5 ${text}">%${pct.toFixed(0)}</span><div class="mt-1 h-1 rounded-full bg-slate-200/70 dark:bg-slate-600/50"><div class="${barColor} h-1 rounded-full" style="width:${Math.min(pct,100).toFixed(0)}%"></div></div>` : '';
                 return `<div class="${bg} rounded-lg p-1.5 sm:p-3 border ${border} shadow-sm"><span class="block text-[10px] sm:text-xs text-slate-500 font-bold mb-0.5">${yr}</span><span class="font-black text-xs sm:text-base ${text}">${fmt(val)}</span>${pctBadge}</div>`;
               }).join('')}
-            </div>
-            ${edChartHtml}`;
+            </div>`;
           lineSummaryEl.appendChild(card);
         });
         lineSummaryEl.classList.remove('hidden');
-        // e-Drive arama hat kartlari icin yillik doluluk grafiklerini olustur (PPCA/Disk ile ayni)
-        if (edSearchChartData.length) {
-          const isDark    = document.documentElement.classList.contains('dark');
-          const textColor = isDark ? '#cbd5e1' : '#475569';
-          const gridColor = isDark ? '#334155' : '#e2e8f0';
-          const baseColor = '#14b8a6';
-          edSearchChartData.forEach(({ idx, occs }) => {
-            const cv = document.getElementById('edSearchChart_' + idx);
-            if (!cv) return;
-            const bgColors = occs.map(p => { const r = Math.round(p); return r >= 115 ? '#ef4444' : r >= 101 ? '#eab308' : '#22c55e'; });
-            edSearchChartInstances.push(new Chart(cv.getContext('2d'), {
-              type: 'bar',
-              data: {
-                labels: ['2027','2028','2029','2030','2031'],
-                datasets: [
-                  { data: occs, backgroundColor: bgColors, borderRadius: 6, borderSkipped: false, barPercentage: 0.7, datalabels: { display: true } },
-                  { type: 'line', data: occs, borderColor: baseColor + 'bb', borderWidth: 2, pointBackgroundColor: baseColor, pointBorderColor: 'transparent', pointRadius: 4, tension: 0.4, fill: false, datalabels: { display: false } }
-                ]
-              },
-              options: {
-                responsive: true, maintainAspectRatio: false, layout: { padding: { top: 30 } },
-                plugins: {
-                  legend: { display: false },
-                  tooltip: {
-                    backgroundColor: isDark ? '#1e293b' : '#ffffff', titleColor: isDark ? '#ffffff' : '#0f172a',
-                    bodyColor: isDark ? '#cbd5e1' : '#475569', borderColor: isDark ? '#334155' : '#cbd5e1',
-                    borderWidth: 1, padding: 12, displayColors: false,
-                    titleFont: { size: 14 }, bodyFont: { size: 15, weight: 'bold' },
-                    callbacks: { label: (context) => t('tooltipLabel')(context.raw) }
-                  },
-                  datalabels: { anchor: 'end', align: 'top', color: textColor, font: { weight: 'bold', size: 14 }, formatter: (value) => t('datalabelFmt')(value) }
-                },
-                scales: {
-                  x: { grid: { display: false }, border: { display: false }, ticks: { color: textColor, font: { weight: 'bold', size: 14 } } },
-                  y: { beginAtZero: true, suggestedMax: 100, grid: { color: gridColor }, border: { display: false }, ticks: { color: textColor, font: { size: 12 }, callback: (value) => value + '%' } }
-                }
-              }
-            }));
-          });
-        }
       } else {
         lineSummaryEl.innerHTML = '';
         lineSummaryEl.classList.add('hidden');
@@ -1838,7 +1785,9 @@
             }
           }
           card.innerHTML = `<span class="text-xs font-bold text-slate-500 uppercase tracking-wider">${item.label}</span><span class="text-2xl font-black mt-1 ${colorClass}">${item.value}</span>${fgTag}${dfgTag}${pfwSubHtml}`;
-          card.onclick = () => { els.kitSelect.value = item.kit; els.compSearch.value = ''; renderDetails(item.kit); };
+          card.onclick = item.type === 'EDrive'
+            ? () => { els.kitSelect.value = ''; els.compSearch.value = ''; renderEDriveRefDetail(item.value); }
+            : () => { els.kitSelect.value = item.kit; els.compSearch.value = ''; renderDetails(item.kit); };
           resultsContainer.appendChild(card);
         });
       }
@@ -1856,6 +1805,8 @@
       if (!matchingRows || matchingRows.length === 0) return;
       const data = matchingRows[0];
 
+      // e-Drive referans detayı yıllık bloğu gizlemiş olabilir; normal kit detayında geri göster
+      document.getElementById('kd-yearly-block').classList.remove('hidden');
       document.getElementById('kd-kitname').textContent = data.kit;
       const custRow = document.getElementById('kd-customer-row');
       if (data.customer) {
@@ -1863,6 +1814,7 @@
         const cnEl = document.getElementById('kd-cust-name');
         const flagEl = document.getElementById('kd-cust-flag');
         ccEl.textContent = data.customer;
+        ccEl.style.cursor = '';
         ccEl.onclick = () => { els.compSearch.value = data.customer; els.kitSelect.value = ''; renderCompSearchResults(data.customer.toLowerCase()); closeSidebarOnMobile(); };
         cnEl.textContent = data.customerName || '';
         const flag = data.customerFlag || '';
@@ -2304,7 +2256,61 @@
       });
     }
 
-    function renderEDriveSection(eDriveLines) {
+    // e-Drive referansına tıklanınca açılan detay. Kit detay kabuğunu (kitDetailView) kullanır:
+    // başlıkta referans, müşteri bilgisinde sabit "Valeo-A05" + Türkiye bayrağı, gövdede ise
+    // referansın geçtiği kapasite kartlı e-Drive hattı/hatları (PPCA/Disk gibi grafik + CT/TRP/
+    // vardiya + yıllık doluluk). e-Drive referansları MAIN'de yer almadığından adet/müşteri sabit.
+    function renderEDriveRefDetail(ref, addToHistory = true) {
+      if (addToHistory) navHistory.push({ view: 'edref', ref });
+      const refUp = String(ref).toUpperCase();
+      const refLines = [...new Set(eDriveData.filter(e => String(e.ref || '').toUpperCase() === refUp).map(e => String(e.line || '')).filter(Boolean))];
+      const wanted = new Set(refLines.map(l => lineKeyVD(l)));
+      const matchedLines = Object.keys(eDriveLineStats).filter(k => wanted.has(k)).map(k => eDriveLineStats[k].lineName);
+
+      document.getElementById('kd-kitname').textContent = ref;
+
+      // Müşteri bilgisi: e-Drive referansları için sabit Valeo-A05 + Türkiye bayrağı (PPCA/Disk gibi)
+      const custRow = document.getElementById('kd-customer-row');
+      const ccEl = document.getElementById('kd-cust-code');
+      const cnEl = document.getElementById('kd-cust-name');
+      const flagEl = document.getElementById('kd-cust-flag');
+      ccEl.textContent = 'Valeo-A05';
+      ccEl.onclick = null;
+      ccEl.style.cursor = 'default';
+      cnEl.textContent = '';
+      flagEl.src = 'https://flagcdn.com/48x36/tr.png';
+      flagEl.alt = 'Türkiye';
+      flagEl.title = 'Türkiye';
+      flagEl.classList.remove('hidden');
+      custRow.classList.remove('hidden');
+
+      // Referans bazında yıllık adet verisi yok (adetler hat bazında) → üst yıllık blok gizlenir
+      document.getElementById('kd-yearly-block').classList.add('hidden');
+
+      // Yalnızca e-Drive kolonunu göster (PPCA/Disk/DMF gizli)
+      document.getElementById('ppca-column').classList.add('hidden');
+      document.getElementById('disk-column').classList.add('hidden');
+      const edriveCol = document.getElementById('edrive-column');
+      const noCompMsg = document.getElementById('no-components-msg');
+      const grid = document.getElementById('components-grid');
+      const hasLines = matchedLines.length > 0;
+      edriveCol.classList.toggle('hidden', !hasLines);
+      noCompMsg.classList.toggle('hidden', hasLines);
+      grid.classList.remove('hidden');
+      grid.className = 'grid grid-cols-1 gap-8 mt-2';
+
+      // Gövde: referansın geçtiği kapasite kartlı e-Drive hatları (grafik + CT/TRP/vardiya + doluluk)
+      if (hasLines) renderEDriveSection(matchedLines, { onlyLines: matchedLines, hideRefs: true });
+
+      els.empty.classList.add('hidden');
+      els.compView.classList.add('hidden');
+      els.kitView.classList.remove('hidden');
+      els.backBtnWrapper.classList.remove('hidden');
+      renderBreadcrumb();
+    }
+
+    function renderEDriveSection(eDriveLines, opts) {
+      opts = opts || {};
       const wrap = document.getElementById('ed-cards');
       // önceki grafik örneklerini temizle
       eDriveChartInstances.forEach(c => { try { c.destroy(); } catch (e) {} });
@@ -2313,7 +2319,12 @@
 
       // Hatlar: kapasite kartı olan e-Drive hatları (MTP_summary'den gelen eDriveLineStats).
       // Referanslar aşağıda e-drive A/B (eDriveData) üzerinden hatla eşleştirilir; MAIN gerekmez.
-      const list = Object.keys(eDriveLineStats);
+      // opts.onlyLines verilirse (referans detayı) yalnızca o hatlar gösterilir.
+      let list = Object.keys(eDriveLineStats);
+      if (opts.onlyLines && opts.onlyLines.length) {
+        const wanted = new Set(opts.onlyLines.map(l => lineKeyVD(String(l))));
+        list = list.filter(k => wanted.has(k));
+      }
       if (!list.length) return;
 
       const isDark    = document.documentElement.classList.contains('dark');
@@ -2330,7 +2341,7 @@
         // Bu hatta ait tüm referanslar: e-drive A sütunu (B'si bu hatla eşleşen satırlar)
         const refs = [...new Set(eDriveData.filter(e => lineKeyVD(String(e.line || '')) === key).map(e => String(e.ref || '')).filter(Boolean))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
         const refChips = refs.map(r => `<span class="px-2 py-1 text-xs rounded-md bg-slate-100 dark:bg-slate-700/60 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 font-medium">${escapeHtml(r)}</span>`).join('');
-        const refsHtml = refs.length ? `<div class="glass-panel rounded-xl p-4"><div class="flex items-center gap-2 mb-2.5"><span class="text-xs font-bold text-slate-500 uppercase tracking-wider">${t('references')}</span><span class="text-xs font-black text-teal-600 dark:text-teal-400">${refs.length}</span></div><div class="flex flex-wrap gap-1.5 max-h-44 overflow-y-auto">${refChips}</div></div>` : '';
+        const refsHtml = (!opts.hideRefs && refs.length) ? `<div class="glass-panel rounded-xl p-4"><div class="flex items-center gap-2 mb-2.5"><span class="text-xs font-bold text-slate-500 uppercase tracking-wider">${t('references')}</span><span class="text-xs font-black text-teal-600 dark:text-teal-400">${refs.length}</span></div><div class="flex flex-wrap gap-1.5 max-h-44 overflow-y-auto">${refChips}</div></div>` : '';
 
         let trpFormatted = stats.trp;
         if (stats.trp !== '-') {
