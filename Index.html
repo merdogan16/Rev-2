@@ -207,7 +207,8 @@
       <div id="sidebar-logo" class="px-4 py-2 mb-1 overflow-hidden transition-all duration-300">
         <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2b/Valeo_Logo.svg/960px-Valeo_Logo.svg.png"
              alt="Valeo"
-             class="w-full max-w-[160px] object-contain mx-auto block">
+             class="w-full max-w-[160px] object-contain mx-auto block"
+             onerror="this.style.display='none'">
       </div>
       <header class="flex items-center justify-between">
         <div>
@@ -325,6 +326,12 @@
         </div>
       </div>
 
+      <div id="loadErrorState" class="hidden glass-panel rounded-2xl p-8 flex flex-col items-center gap-4 text-center">
+        <svg class="w-10 h-10 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+        <p id="loadErrorMsg" class="text-slate-700 dark:text-slate-200 font-semibold text-base break-words max-w-xl"></p>
+        <button id="loadErrorRetry" class="px-5 py-2.5 rounded-lg bg-valeo-blue text-white font-bold text-sm hover:opacity-90 transition-opacity outline-none shadow-sm" data-i18n="retry">Yeniden Dene</button>
+      </div>
+
       <div id="emptyState" class="hidden flex flex-col items-center justify-center min-h-[440px] glass-panel rounded-3xl p-10 gap-8">
         <div class="flex flex-col items-center gap-2">
           <span class="section-label" data-i18n="quickAccess">Hızlı Erişim</span>
@@ -389,6 +396,7 @@
           <div>
             <h3 data-i18n="selectedKit" class="text-sm font-bold text-valeo-blue uppercase tracking-wider mb-2">Seçili Kit Referansı</h3>
             <p id="kd-kitname" class="text-4xl md:text-5xl font-black tracking-tight text-slate-800 dark:text-white">-</p>
+            <span id="kd-multirow" class="hidden mt-2 inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 cursor-help"></span>
             <div id="kd-customer-row" class="hidden mt-3 flex flex-col items-start gap-1.5">
               <div class="flex items-center gap-2">
                 <span id="kd-cust-code" class="cursor-pointer px-3 py-1.5 text-xs font-bold rounded-full bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 border border-orange-200 dark:border-orange-800 hover:bg-orange-200 dark:hover:bg-orange-800/50 transition-colors" title="Bu müşterinin tüm referanslarını ara" data-i18n-title="searchAllCustomerRefs"></span>
@@ -605,7 +613,9 @@
   </div>
 
   <script>
-    Chart.register(ChartDataLabels);
+    // CDN engellenirse (Chart.js yüklenemezse) uygulama grafiksiz de çalışmaya devam etsin
+    var chartsReady = (typeof Chart !== 'undefined');
+    if (chartsReady && typeof ChartDataLabels !== 'undefined') Chart.register(ChartDataLabels);
 
     let globalData = [];
     let lineStats = {};
@@ -656,6 +666,7 @@
     let lang = localStorage.getItem('dashLang') || 'tr';
 
     let allKits = [];
+    let searchDebounceTimer = null;
     let recentSearches = JSON.parse(localStorage.getItem('dashRecentSearches') || '[]');
 
     function saveRecentSearch(term) {
@@ -733,6 +744,7 @@
         home:                 'Ana Sayfa',
         breadcrumbSearch:     (term) => `Arama: ${term.toUpperCase()}`,
         breadcrumbKit:        (kit)  => `Kit: ${kit}`,
+        breadcrumbEDriveRef:  (ref)  => `e-Drive: ${ref}`,
         or:                   'VEYA',
         themeToggleLabel:     'Karanlık / Aydınlık mod',
         searchLabel:          'Arama (Kit, Komponent, Hat)',
@@ -741,6 +753,7 @@
         back:                 'Geri',
         loadingText:          'Veriler eşitleniyor...',
         emptyText:            'Arama yapmak için soldaki menüyü kullanın.',
+        retry:                'Yeniden Dene',
         selectedKit:          'Seçili Kit Referansı',
         annualVolume:         'Bu Kit İçin Yıllık Üretim Beklentisi (Adet)',
         annualChart:          'Yıllık Hat Doluluk Grafiği (%)',
@@ -779,6 +792,9 @@
         searchFamilyGroup:    'Bu aile grubunu ara',
         searchDmfLines:       'DMF hatlarını ara',
         noCapacityProduct:    'Kapasite dosyasına alınmamış ürün: SMF, Rulman vb.',
+        noEDriveLines:        'Bu e-Drive referansı için kapasite kartı olan hat bulunamadı.',
+        multiRecordNote:      (n) => `${n} kayıt toplamı`,
+        multiRecordHint:      'Bu kit ana listede birden çok satırda geçiyor. Yıllık adetler tüm satırların toplamıdır; komponent/hat bilgileri ilk satırdan gösterilir.',
         recentSearchClear:    'Geçmişi temizle',
         ppcaFamilyGroupLabel: (g) => `PPCA — Aile Grubu: ${g}`,
         viewLineRefs:         'Bu hattaki referansları görüntüle',
@@ -836,6 +852,7 @@
         home:                 'Home',
         breadcrumbSearch:     (term) => `Search: ${term.toUpperCase()}`,
         breadcrumbKit:        (kit)  => `Kit: ${kit}`,
+        breadcrumbEDriveRef:  (ref)  => `e-Drive: ${ref}`,
         or:                   'OR',
         themeToggleLabel:     'Dark / Light mode',
         searchLabel:          'Search (Kit, Component, Line)',
@@ -844,6 +861,7 @@
         back:                 'Back',
         loadingText:          'Syncing data...',
         emptyText:            'Use the left menu to search.',
+        retry:                'Retry',
         selectedKit:          'Selected Kit Reference',
         annualVolume:         'Annual Production Forecast for This Kit (Units)',
         annualChart:          'Annual Line Occupancy Chart (%)',
@@ -882,6 +900,9 @@
         searchFamilyGroup:    'Search this family group',
         searchDmfLines:       'Search DMF lines',
         noCapacityProduct:    'Product not tracked in the capacity file: SMF, bearing, etc.',
+        noEDriveLines:        'No line with a capacity card was found for this e-Drive reference.',
+        multiRecordNote:      (n) => `total of ${n} records`,
+        multiRecordHint:      'This kit appears in multiple rows of the main list. Annual volumes are the sum of all rows; component/line info is shown from the first row.',
         recentSearchClear:    'Clear history',
         ppcaFamilyGroupLabel: (g) => `PPCA — Family Group: ${g}`,
         viewLineRefs:         'View references on this line',
@@ -938,6 +959,90 @@
       return String(str).replace(/[&<>"']/g, ch => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[ch]));
     }
     const fmt = (num) => Math.round(Number(num) || 0).toLocaleString(t('locale'));
+
+    // TRP değerini yüzdeye çevirir (0-1 aralığı 100 ile çarpılır); tüm kartlarda ortak
+    function formatTrp(trp) {
+      if (trp === '-' || trp === undefined || trp === null || trp === '') return trp === '' ? '-' : trp;
+      let trpNum = Number(trp);
+      if (!isNaN(trpNum)) {
+        if (trpNum <= 1 && trpNum > 0) trpNum = trpNum * 100;
+        return parseFloat(trpNum.toFixed(1)) + '%';
+      }
+      return String(trp).includes('%') ? String(trp) : String(trp) + '%';
+    }
+
+    // Yıl doluluk hücresi: adet + (varsa) yüzde rozeti ve mini bar. cp=-1 → nötr renk.
+    function occCellHtml(yr, qty, pct, cp, showPct) {
+      const c = cp >= 115
+        ? ['bg-red-50 dark:bg-red-900/30', 'border-red-300 dark:border-red-700', 'text-red-600 dark:text-red-400', 'bg-red-500']
+        : cp >= 101
+        ? ['bg-yellow-50 dark:bg-yellow-900/30', 'border-yellow-300 dark:border-yellow-700', 'text-yellow-600 dark:text-yellow-400', 'bg-yellow-500']
+        : cp >= 0
+        ? ['bg-green-50 dark:bg-green-900/30', 'border-green-300 dark:border-green-700', 'text-green-600 dark:text-green-400', 'bg-green-500']
+        : ['bg-white/60 dark:bg-slate-900/50', 'border-slate-200 dark:border-slate-700', 'text-slate-800 dark:text-slate-200', 'bg-green-500'];
+      const pctHtml = showPct
+        ? `<span class="block text-[10px] sm:text-xs font-bold mt-0.5 ${c[2]}">%${pct.toFixed(0)}</span><div class="mt-1 h-1 rounded-full bg-slate-200/70 dark:bg-slate-600/50"><div class="${c[3]} h-1 rounded-full" style="width:${Math.min(pct,100).toFixed(0)}%"></div></div>`
+        : '';
+      return `<div class="${c[0]} rounded-lg p-1.5 sm:p-3 border ${c[1]} shadow-sm"><span class="block text-[10px] sm:text-xs text-slate-500 font-bold mb-0.5">${yr}</span><span class="font-black text-xs sm:text-base ${c[2]}">${fmt(qty)}</span>${pctHtml}</div>`;
+    }
+
+    // Tıklanabilir kartlara klavye erişimi (Enter / Boşluk)
+    function wireCardKeys(el) {
+      if (!el || el.dataset.kbd === '1') return;
+      el.dataset.kbd = '1';
+      if (!el.getAttribute('role')) el.setAttribute('role', 'button');
+      if (!el.hasAttribute('tabindex')) el.tabIndex = 0;
+      el.addEventListener('keydown', e => {
+        if ((e.key === 'Enter' || e.key === ' ') && typeof el.onclick === 'function') {
+          e.preventDefault();
+          el.onclick(e);
+        }
+      });
+    }
+
+    // Tüm doluluk grafikleri için tek konfigürasyon (PPCA/Disc/DMF/e-Drive/PFW).
+    // isPercent=false ise (kapasitesi bilinmeyen hat) ham adet çizilir.
+    function makeOccupancyChart(ctx, values, baseColor, opts) {
+      if (!chartsReady) return null;
+      opts = opts || {};
+      const isPercent = opts.isPercent !== false;
+      const isDark    = document.documentElement.classList.contains('dark');
+      const textColor = isDark ? '#cbd5e1' : '#475569';
+      const gridColor = isDark ? '#334155' : '#e2e8f0';
+      const bgColors  = isPercent
+        ? values.map(p => { const r = Math.round(p); return r >= 115 ? '#ef4444' : r >= 101 ? '#eab308' : '#22c55e'; })
+        : values.map(() => baseColor);
+      return new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: ['2027', '2028', '2029', '2030', '2031'],
+          datasets: [
+            { data: values, backgroundColor: bgColors, borderRadius: 6, borderSkipped: false, barPercentage: 0.7, datalabels: { display: true } },
+            { type: 'line', data: values, borderColor: baseColor + 'bb', borderWidth: 2, pointBackgroundColor: baseColor, pointBorderColor: 'transparent', pointRadius: 4, tension: 0.4, fill: false, datalabels: { display: false } }
+          ]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false, layout: { padding: { top: 30 } },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: isDark ? '#1e293b' : '#ffffff', titleColor: isDark ? '#ffffff' : '#0f172a',
+              bodyColor: isDark ? '#cbd5e1' : '#475569', borderColor: isDark ? '#334155' : '#cbd5e1',
+              borderWidth: 1, padding: 12, displayColors: false,
+              titleFont: { size: 14 }, bodyFont: { size: 15, weight: 'bold' },
+              callbacks: { label: (context) => isPercent ? t('tooltipLabel')(context.raw) : fmt(context.raw) }
+            },
+            datalabels: { anchor: 'end', align: 'top', color: textColor, font: { weight: 'bold', size: 14 },
+              formatter: (value) => isPercent ? t('datalabelFmt')(value) : fmt(value) }
+          },
+          scales: {
+            x: { grid: { display: false }, border: { display: false }, ticks: { color: textColor, font: { weight: 'bold', size: 14 } } },
+            y: { beginAtZero: true, suggestedMax: isPercent ? 100 : undefined, grid: { color: gridColor }, border: { display: false },
+              ticks: { color: textColor, font: { size: 12 }, callback: (v) => isPercent ? v + '%' : fmt(v) } }
+          }
+        }
+      });
+    }
 
     function closeSidebarOnMobile() {
       if (window.innerWidth < 1024) {
@@ -996,8 +1101,11 @@
         firstOpt.text = globalData.length === 0 ? t('kitSelectLoading') : t('kitSelectPlaceholder');
       }
 
+      const lastNav = navHistory[navHistory.length - 1];
       if (!els.kitView.classList.contains('hidden') && els.kitSelect.value) {
         renderDetails(els.kitSelect.value, false);
+      } else if (!els.kitView.classList.contains('hidden') && lastNav && lastNav.view === 'edref') {
+        renderEDriveRefDetail(lastNav.ref, false);
       } else if (!els.compView.classList.contains('hidden') && els.compSearch.value.trim().length >= 2) {
         renderCompSearchResults(els.compSearch.value.trim().toLowerCase(), false);
       } else {
@@ -1030,8 +1138,11 @@
 
     els.themeBtn.addEventListener('click', () => {
       document.documentElement.classList.toggle('dark');
+      const lastNav = navHistory[navHistory.length - 1];
       if (!els.kitView.classList.contains('hidden') && els.kitSelect.value) {
         renderDetails(els.kitSelect.value, false);
+      } else if (!els.kitView.classList.contains('hidden') && lastNav && lastNav.view === 'edref') {
+        renderEDriveRefDetail(lastNav.ref, false);
       }
     });
 
@@ -1041,13 +1152,20 @@
       applyLang();
     });
 
+    function showLoadError(msg) {
+      els.loading.classList.add('hidden');
+      els.empty.classList.add('hidden');
+      document.getElementById('loadErrorMsg').textContent = msg;
+      document.getElementById('loadErrorState').classList.remove('hidden');
+    }
+    document.getElementById('loadErrorRetry').addEventListener('click', () => location.reload());
+
     window.onload = () => {
       google.script.run
         .withSuccessHandler(data => {
           els.loading.classList.add('hidden');
           if (data.error) {
-            els.empty.classList.remove('hidden');
-            alert(t('errLoad') + data.error);
+            showLoadError(t('errLoad') + data.error);
             return;
           }
           globalData = data.globalData;
@@ -1055,23 +1173,8 @@
           eDriveData = data.eDriveData || [];
           eDriveLineStats = data.eDriveLineStats || {};
           pfwMap = data.pfwMap || {};
-
-          // DEBUG — DMF keys in lineStats
-          const dmfKeys = Object.keys(lineStats||{}).filter(k=>k.startsWith('DMF'));
-          console.log('[DEBUG] getSpreadsheetData lineStats DMF keys:', dmfKeys);
-          dmfKeys.forEach(k => console.log('[DEBUG]', k, JSON.stringify(lineStats[k])));
-
-          // DMF/PFW istatistiklerini cache'den bağımsız olarak canlı çek
-          google.script.run
-            .withSuccessHandler(function(freshStats) {
-              if (freshStats && Object.keys(freshStats).length > 0) {
-                Object.assign(lineStats, freshStats);
-              }
-              const fKeys = Object.keys(freshStats||{}).filter(k=>k.startsWith('DMF'));
-              console.log('[DEBUG] getLineStats freshStats DMF keys:', fKeys);
-              fKeys.forEach(k => console.log('[DEBUG] fresh', k, JSON.stringify(freshStats[k])));
-            })
-            .getLineStats();
+          // Not: DMF/PFW istatistikleri getSpreadsheetData içinde cache'e rağmen canlı
+          // güncellendiği için burada ayrıca getLineStats çağrılmaz (çift okuma önlendi).
 
           const kits = [...new Set(globalData.map(d => d.kit))].sort();
           allKits = kits;
@@ -1081,9 +1184,7 @@
           els.empty.classList.remove('hidden');
         })
         .withFailureHandler(err => {
-          els.loading.classList.add('hidden');
-          els.empty.classList.remove('hidden');
-          alert(t('errServer') + (err.message || err));
+          showLoadError(t('errServer') + (err.message || err));
         })
         .getSpreadsheetData();
 
@@ -1113,10 +1214,14 @@
       ppcaGroupFilter = null;
       diskGroupFilter = null;
       const searchTerm = e.target.value.trim().toLowerCase();
+      clearTimeout(searchDebounceTimer);
       if (searchTerm.length >= 2) {
-        document.getElementById('recentSearchDropdown').classList.add('hidden');
-        els.kitSelect.value = '';
-        renderCompSearchResults(searchTerm);
+        // Debounce: her tuş vuruşunda değil, yazma durunca ara
+        searchDebounceTimer = setTimeout(() => {
+          document.getElementById('recentSearchDropdown').classList.add('hidden');
+          els.kitSelect.value = '';
+          renderCompSearchResults(searchTerm, true, true);
+        }, 250);
       } else if (searchTerm.length === 0 || searchTerm.length === 1) resetView();
     });
 
@@ -1151,6 +1256,12 @@
         els.compSearch.focus();
       }
       if (e.key === 'Escape') {
+        // Açık bir pencere (layout / geri bildirim) varsa ESC yalnızca onu kapatır,
+        // ana görünümü sıfırlamaz — kapatma işini pencerenin kendi dinleyicisi yapar
+        const layoutModalEl = document.getElementById('layoutModal');
+        if (layoutModalEl && !layoutModalEl.classList.contains('hidden')) return;
+        const fbOverlayEl = document.getElementById('fb-overlay');
+        if (fbOverlayEl && fbOverlayEl.classList.contains('fb-open')) return;
         const recentEl = document.getElementById('recentSearchDropdown');
         if (recentEl && !recentEl.classList.contains('hidden')) { recentEl.classList.add('hidden'); return; }
         if (document.activeElement === els.compSearch) {
@@ -1166,9 +1277,9 @@
     els.resetBtn.addEventListener('click', () => { els.kitSelect.value = ''; els.compSearch.value = ''; resetView(); closeSidebarOnMobile(); });
 
     els.backBtn.addEventListener('click', () => {
-      navHistory.pop();
-      const prev = navHistory[navHistory.length - 1];
-      if (!prev) {
+      // Önceki adım hangi görünümse (arama, kit, e-Drive referansı, PPCA/Disc grubu)
+      // goToNavHistoryStep hepsini bildiği için geri dönüş oradan yapılır
+      if (navHistory.length <= 1) {
         ppcaGroupFilter = null;
         diskGroupFilter = null;
         els.kitSelect.value = '';
@@ -1176,19 +1287,7 @@
         resetView();
         return;
       }
-      if (prev.view === 'search') {
-        ppcaGroupFilter = null;
-        diskGroupFilter = null;
-        els.kitSelect.value = '';
-        els.compSearch.value = prev.term;
-        renderCompSearchResults(prev.term, false);
-      } else if (prev.view === 'edref') {
-        ppcaGroupFilter = null;
-        diskGroupFilter = null;
-        els.kitSelect.value = '';
-        els.compSearch.value = '';
-        renderEDriveRefDetail(prev.ref, false);
-      }
+      goToNavHistoryStep(navHistory.length - 2);
     });
 
     function quickSearch(term) {
@@ -1199,7 +1298,7 @@
 
     function navHistoryLabel(entry) {
       if (entry.view === 'kit')         return t('breadcrumbKit')(entry.kit);
-      if (entry.view === 'edref')       return t('breadcrumbKit')(entry.ref);
+      if (entry.view === 'edref')       return t('breadcrumbEDriveRef')(entry.ref);
       if (entry.view === 'search')      return t('breadcrumbSearch')(entry.term);
       if (entry.view === 'ppca-group')  { const g = PPCA_GROUPS[entry.group]; return g ? (g[lang] || g.tr) : entry.group; }
       if (entry.view === 'disk-group')  { const g = DISK_GROUPS[entry.group]; return g ? (g[lang] || g.tr) : entry.group; }
@@ -1327,6 +1426,7 @@
           ppcaGroupFilter = key;
           renderCompSearchResults('ppca', false);
         };
+        wireCardKeys(card);
         container.appendChild(card);
       });
       container.classList.remove('hidden');
@@ -1364,25 +1464,34 @@
           diskGroupFilter = key;
           renderCompSearchResults('disc', false);
         };
+        wireCardKeys(card);
         container.appendChild(card);
       });
       container.classList.remove('hidden');
     }
 
-    function renderCompSearchResults(term, addToHistory = true) {
+    function renderCompSearchResults(term, addToHistory = true, mergeHistory = false) {
+      clearTimeout(searchDebounceTimer);
       if (addToHistory) {
+        // Yazarak arama (mergeHistory) son arama adımını günceller; karta tıklayarak
+        // inişte ise yeni adım eklenir ki breadcrumb/Geri üst görünümü kaybetmesin
         const last = navHistory[navHistory.length - 1];
-        if (last && last.view === 'search') { last.term = term; }
-        else { navHistory.push({ view: 'search', term }); }
+        if (last && last.view === 'search' &&
+            (last.term === term || (mergeHistory && (last.term.startsWith(term) || term.startsWith(last.term))))) {
+          last.term = term;
+        } else {
+          navHistory.push({ view: 'search', term });
+        }
       }
       const termLower = term.toLowerCase();
+      const termKey = termLower.replace(/[^a-z0-9]/g, '');
       const uniqueResults = new Map();
       const lineVolumes = new Map();
       const customerVolumes = new Map();
       const isAllPPCA = termLower === 'ppca';
       const isAllDisk = termLower === 'disc' || termLower === 'disk';
       const isAllDMF    = termLower === 'dmf';
-      const isAllEDrive = termLower === 'e-drive';
+      const isAllEDrive = termKey === 'edrive';
       const isAllPFW = termLower === 'pfw';
       const isAllSG  = termLower === 'spring guide';
       const isAllDP  = termLower === 'drive plate';
@@ -1678,7 +1787,7 @@
           card.innerHTML = `
             <div class="flex flex-wrap items-center gap-3 mb-4">
               <span class="px-3 py-1 text-sm rounded-md font-bold ${badgeClass}">${lv.type === 'SG' ? 'Spring Guide' : lv.type === 'DP' ? 'Drive Plate' : lv.type === 'Disk' ? 'Disc' : lv.type}</span>
-              <span class="text-xl font-black text-slate-800 dark:text-white">${lv.lineName}</span>
+              <span class="text-xl font-black text-slate-800 dark:text-white">${escapeHtml(lv.lineName)}</span>
               <span class="text-xs text-slate-400 font-medium flex items-center gap-1"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>${t('references')}</span>
               ${capacity > 0 ? `<span class="text-xs text-slate-500 font-medium">${t('annualCapacity')} ${fmt(capacity)}</span>` : ''}
               ${lvDocsUrl ? `<a href="${lvDocsUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="ml-auto flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md font-bold bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:bg-blue-50 dark:hover:bg-slate-600 hover:text-blue-600 dark:hover:text-blue-300 hover:border-blue-300 transition-all"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>${t('documents')}</a>` : ''}
@@ -1686,19 +1795,10 @@
             <div class="grid grid-cols-5 gap-1 sm:gap-2 text-center">
               ${[['2027',lv.v26,0],['2028',lv.v27,1],['2029',lv.v28,2],['2030',lv.v29,3],['2031',lv.v30,4]].map(([yr,val,idx]) => {
                 const pct = lv.type === 'DMF' && lv.occ26 !== undefined ? [lv.occ26,lv.occ27,lv.occ28,lv.occ29,lv.occ30][idx] : capacity > 0 ? (val / capacity) * 100 : -1;
-                const cp = Math.round(pct);
-                const [bg, border, text] = cp >= 115
-                  ? ['bg-red-50 dark:bg-red-900/30',    'border-red-300 dark:border-red-700',    'text-red-600 dark:text-red-400']
-                  : cp >= 101
-                  ? ['bg-yellow-50 dark:bg-yellow-900/30', 'border-yellow-300 dark:border-yellow-700', 'text-yellow-600 dark:text-yellow-400']
-                  : cp >= 0
-                  ? ['bg-green-50 dark:bg-green-900/30',  'border-green-300 dark:border-green-700',  'text-green-600 dark:text-green-400']
-                  : ['bg-white/60 dark:bg-slate-900/50',  'border-slate-200 dark:border-slate-700',  'text-slate-800 dark:text-slate-200'];
-                const barColor = cp >= 115 ? 'bg-red-500' : cp >= 101 ? 'bg-yellow-500' : 'bg-green-500';
-                const pctBadge = pct >= 0 ? `<span class="block text-[10px] sm:text-xs font-bold mt-0.5 ${text}">%${pct.toFixed(0)}</span><div class="mt-1 h-1 rounded-full bg-slate-200/70 dark:bg-slate-600/50"><div class="${barColor} h-1 rounded-full" style="width:${Math.min(pct,100).toFixed(0)}%"></div></div>` : '';
-                return `<div class="${bg} rounded-lg p-1.5 sm:p-3 border ${border} shadow-sm"><span class="block text-[10px] sm:text-xs text-slate-500 font-bold mb-0.5">${yr}</span><span class="font-black text-xs sm:text-base ${text}">${fmt(val)}</span>${pctBadge}</div>`;
+                return occCellHtml(yr, val, pct, Math.round(pct), pct >= 0);
               }).join('')}
             </div>`;
+          wireCardKeys(card);
           lineSummaryEl.appendChild(card);
         });
         lineSummaryEl.classList.remove('hidden');
@@ -1721,7 +1821,7 @@
           card.innerHTML = `
             <div class="flex flex-wrap items-center gap-3 mb-4">
               <span class="px-3 py-1 text-sm rounded-full font-bold bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 border border-orange-200 dark:border-orange-800">${t('customer')}</span>
-              <span class="text-xl font-black text-slate-800 dark:text-white">${cv.customer}</span>
+              <span class="text-xl font-black text-slate-800 dark:text-white">${escapeHtml(cv.customer)}</span>
             </div>
             <div class="grid grid-cols-5 gap-1 sm:gap-2 text-center">
               ${[['2027',cv.v26],['2028',cv.v27],['2029',cv.v28],['2030',cv.v29],['2031',cv.v30]].map(([yr,val]) =>
@@ -1731,6 +1831,7 @@
                 </div>`
               ).join('')}
             </div>`;
+          wireCardKeys(card);
           custSummaryEl.appendChild(card);
         });
         custSummaryEl.classList.remove('hidden');
@@ -1810,17 +1911,22 @@
               const pfwLine = (label, ref, line) => ref
                 ? `<div class="flex items-center gap-1.5"><span class="text-[10px] font-bold text-slate-400 uppercase w-20 shrink-0">${label}:</span><span class="text-[11px] font-bold text-orange-600 dark:text-orange-400">${escapeHtml(ref)}${line ? `<span class="text-slate-400 font-normal"> (${escapeHtml(line)})</span>` : ''}</span></div>`
                 : '';
+              // Aynı DMF birden çok PFW hattına gidiyorsa hepsi listelenir (son satır kazanmaz)
+              const pfwPairs = (pd.pfwPairs && pd.pfwPairs.length)
+                ? pd.pfwPairs
+                : (pd.pfw ? [{ ref: pd.pfw, line: pd.pfwLine }] : []);
               pfwSubHtml = `<div class="mt-2 pt-2 border-t border-slate-200 dark:border-slate-600 flex flex-col gap-0.5">
-                ${pfwLine('PFW', pd.pfw, pd.pfwLine)}
+                ${pfwPairs.map(pr => pfwLine('PFW', pr.ref, pr.line)).join('')}
                 ${pfwLine('Spring Guide', pd.springGuide, pd.springGuideLine)}
                 ${pfwLine('Drive Plate', pd.drivePlate, pd.drivePlateLine)}
               </div>`;
             }
           }
-          card.innerHTML = `<span class="text-xs font-bold text-slate-500 uppercase tracking-wider">${item.label}</span><span class="text-2xl font-black mt-1 ${colorClass}">${item.value}</span>${fgTag}${dfgTag}${pfwSubHtml}`;
+          card.innerHTML = `<span class="text-xs font-bold text-slate-500 uppercase tracking-wider">${escapeHtml(item.label)}</span><span class="text-2xl font-black mt-1 ${colorClass}">${escapeHtml(item.value)}</span>${fgTag}${dfgTag}${pfwSubHtml}`;
           card.onclick = item.type === 'EDrive'
             ? () => { els.kitSelect.value = ''; els.compSearch.value = ''; renderEDriveRefDetail(item.value); }
             : () => { els.kitSelect.value = item.kit; els.compSearch.value = ''; renderDetails(item.kit); };
+          wireCardKeys(card);
           resultsContainer.appendChild(card);
         });
       }
@@ -1841,6 +1947,15 @@
       // e-Drive referans detayı yıllık bloğu gizlemiş olabilir; normal kit detayında geri göster
       document.getElementById('kd-yearly-block').classList.remove('hidden');
       document.getElementById('kd-kitname').textContent = data.kit;
+      // Kit ana listede birden çok satırdaysa: adetler toplam, komponentler ilk satırdan
+      const multiEl = document.getElementById('kd-multirow');
+      if (matchingRows.length > 1) {
+        multiEl.textContent = t('multiRecordNote')(matchingRows.length);
+        multiEl.title = t('multiRecordHint');
+        multiEl.classList.remove('hidden');
+      } else {
+        multiEl.classList.add('hidden');
+      }
       const custRow = document.getElementById('kd-customer-row');
       if (data.customer) {
         const ccEl = document.getElementById('kd-cust-code');
@@ -1962,6 +2077,7 @@
       dmfCard.classList.toggle('hidden', !hasDmf);
       edriveCol.classList.toggle('hidden', !hasEDrive);
       grid.classList.toggle('hidden', !hasAny);
+      noCompMsg.textContent = t('noCapacityProduct');
       noCompMsg.classList.toggle('hidden', hasAny);
 
       const _grpCount = (hasPPCA ? 1 : 0) + ((hasDisk || hasDmf) ? 1 : 0) + (hasEDrive ? 1 : 0);
@@ -2016,12 +2132,17 @@
                ${line ? `<span class="text-slate-400 dark:text-slate-500 ml-1">(${escapeHtml(line)})</span>` : ''}
                <svg class="w-3 h-3 text-slate-400 ml-auto shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
              </div>` : '';
+        // Aynı DMF birden çok PFW hattına gidiyorsa tüm PFW referans+hat çiftleri listelenir
+        const pfwPairs = (pfwData.pfwPairs && pfwData.pfwPairs.length)
+          ? pfwData.pfwPairs
+          : [{ ref: pfwData.pfw, line: pfwData.pfwLine }];
         pfwInfoEl.innerHTML =
-          pfwRow('PFW', pfwData.pfw, pfwData.pfwLine) +
+          pfwPairs.map(pr => pfwRow('PFW', pr.ref, pr.line)).join('') +
           pfwRow('Spring Guide', pfwData.springGuide, pfwData.springGuideLine) +
           pfwRow('Drive Plate', pfwData.drivePlate, pfwData.drivePlateLine);
         pfwInfoEl.querySelectorAll('[data-pfw-ref]').forEach(el => {
-          el.addEventListener('click', () => renderPFWCompSection(el.dataset.pfwRef, el.dataset.pfwLine, el.dataset.pfwType));
+          el.onclick = () => renderPFWCompSection(el.dataset.pfwRef, el.dataset.pfwLine, el.dataset.pfwType);
+          wireCardKeys(el);
         });
         pfwInfoEl.classList.remove('hidden');
       } else {
@@ -2068,19 +2189,8 @@
       const safeSearchName = lineKey(lineName);
       const stats = lineStats[safeSearchName] || { cycleTime: '-', trp: '-', shiftDay: '-', annualCapacity: 0 };
 
-      let trpFormatted = stats.trp;
-      if (stats.trp !== '-') {
-        let trpNum = Number(stats.trp);
-        if (!isNaN(trpNum)) {
-          if (trpNum <= 1 && trpNum > 0) trpNum = trpNum * 100;
-          trpFormatted = parseFloat(trpNum.toFixed(1)) + '%';
-        } else if (!String(stats.trp).includes('%')) {
-          trpFormatted += '%';
-        }
-      }
-
       document.getElementById(`${prefix}-ct`).textContent  = stats.cycleTime;
-      document.getElementById(`${prefix}-trp`).textContent = trpFormatted;
+      document.getElementById(`${prefix}-trp`).textContent = formatTrp(stats.trp);
       document.getElementById(`${prefix}-sd`).textContent  = stats.shiftDay;
 
       const cap = stats.annualCapacity;
@@ -2105,93 +2215,7 @@
       if (prefix === 'p' && ppcaChartInstance) ppcaChartInstance.destroy();
       if (prefix === 'd' && diskChartInstance)  diskChartInstance.destroy();
 
-      const isDark     = document.documentElement.classList.contains('dark');
-      const textColor  = isDark ? '#cbd5e1' : '#475569';
-      const gridColor  = isDark ? '#334155' : '#e2e8f0';
-      const baseColor  = prefix === 'p' ? '#89c341' : '#0072b5';
-
-      const bgColors = percentages.map(p => {
-        const r = Math.round(p);
-        if (r >= 115) return '#ef4444';
-        if (r >= 101) return '#eab308';
-        return '#22c55e';
-      });
-
-      const newChart = new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels: ['2027', '2028', '2029', '2030', '2031'],
-          datasets: [
-            {
-              data: percentages,
-              backgroundColor: bgColors,
-              borderRadius: 6,
-              borderSkipped: false,
-              barPercentage: 0.7,
-              datalabels: { display: true }
-            },
-            {
-              type: 'line',
-              data: percentages,
-              borderColor: baseColor + 'bb',
-              borderWidth: 2,
-              pointBackgroundColor: baseColor,
-              pointBorderColor: 'transparent',
-              pointRadius: 4,
-              tension: 0.4,
-              fill: false,
-              datalabels: { display: false }
-            }
-          ]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          layout: { padding: { top: 30 } },
-          plugins: {
-            legend: { display: false },
-            tooltip: {
-              backgroundColor: isDark ? '#1e293b' : '#ffffff',
-              titleColor:      isDark ? '#ffffff'  : '#0f172a',
-              bodyColor:       isDark ? '#cbd5e1'  : '#475569',
-              borderColor:     isDark ? '#334155'  : '#cbd5e1',
-              borderWidth: 1,
-              padding: 12,
-              displayColors: false,
-              titleFont: { size: 14 },
-              bodyFont:  { size: 15, weight: 'bold' },
-              callbacks: {
-                label: (context) => t('tooltipLabel')(context.raw)
-              }
-            },
-            datalabels: {
-              anchor: 'end',
-              align: 'top',
-              color: textColor,
-              font: { weight: 'bold', size: 14 },
-              formatter: (value) => t('datalabelFmt')(value)
-            }
-          },
-          scales: {
-            x: {
-              grid: { display: false },
-              border: { display: false },
-              ticks: { color: textColor, font: { weight: 'bold', size: 14 } }
-            },
-            y: {
-              beginAtZero: true,
-              suggestedMax: 100,
-              grid: { color: gridColor },
-              border: { display: false },
-              ticks: {
-                color: textColor,
-                font: { size: 12 },
-                callback: (value) => value + '%'
-              }
-            }
-          }
-        }
-      });
+      const newChart = makeOccupancyChart(ctx, percentages, prefix === 'p' ? '#89c341' : '#0072b5');
 
       if (prefix === 'p') ppcaChartInstance = newChart;
       if (prefix === 'd') diskChartInstance  = newChart;
@@ -2200,24 +2224,13 @@
     function renderDMFSection(dmfLine) {
       const qtyGrid = document.getElementById('dmf-qty-grid');
       const key = lineKey(dmfLine || '');
-      console.log('[DEBUG] renderDMFSection dmfLine:', dmfLine, '→ key:', key, '→ stats:', JSON.stringify(lineStats[key]));
       if (!key) { qtyGrid.innerHTML = ''; return; }
 
       const stats = lineStats[key] || { cycleTime: '-', trp: '-', shiftDay: '-', annualCapacity: 0 };
       const cap   = stats.annualCapacity;
 
-      let trpFormatted = stats.trp;
-      if (stats.trp !== '-') {
-        let trpNum = Number(stats.trp);
-        if (!isNaN(trpNum)) {
-          if (trpNum <= 1 && trpNum > 0) trpNum = trpNum * 100;
-          trpFormatted = parseFloat(trpNum.toFixed(1)) + '%';
-        } else if (!String(stats.trp).includes('%')) {
-          trpFormatted += '%';
-        }
-      }
       document.getElementById('m-ct').textContent  = stats.cycleTime;
-      document.getElementById('m-trp').textContent = trpFormatted;
+      document.getElementById('m-trp').textContent = formatTrp(stats.trp);
       document.getElementById('m-sd').textContent  = stats.shiftDay;
       document.getElementById('m-cap').textContent = fmt(cap);
 
@@ -2231,62 +2244,13 @@
       const occs = [v26, v27, v28, v29, v30].map(v => cap > 0 ? (v / cap) * 100 : 0);
       const qtys = [v26, v27, v28, v29, v30];
 
-      qtyGrid.innerHTML = ['2027','2028','2029','2030','2031'].map((yr, i) => {
-        const pct = occs[i];
-        const cp = cap > 0 ? Math.round(pct) : -1;
-        const [bg, border, text] = cp >= 115
-          ? ['bg-red-50 dark:bg-red-900/30', 'border-red-300 dark:border-red-700', 'text-red-600 dark:text-red-400']
-          : cp >= 101
-          ? ['bg-yellow-50 dark:bg-yellow-900/30', 'border-yellow-300 dark:border-yellow-700', 'text-yellow-600 dark:text-yellow-400']
-          : cp >= 0
-          ? ['bg-green-50 dark:bg-green-900/30', 'border-green-300 dark:border-green-700', 'text-green-600 dark:text-green-400']
-          : ['bg-white/60 dark:bg-slate-900/50', 'border-slate-200 dark:border-slate-700', 'text-slate-800 dark:text-slate-200'];
-        const barColor = cp >= 115 ? 'bg-red-500' : cp >= 101 ? 'bg-yellow-500' : 'bg-green-500';
-        return `<div class="${bg} rounded-lg p-1.5 sm:p-3 border ${border} shadow-sm">
-          <span class="block text-[10px] sm:text-xs text-slate-500 font-bold mb-0.5">${yr}</span>
-          <span class="font-black text-xs sm:text-base ${text}">${fmt(qtys[i])}</span>
-          <span class="block text-[10px] sm:text-xs font-bold mt-0.5 ${text}">%${pct.toFixed(0)}</span>
-          <div class="mt-1 h-1 rounded-full bg-slate-200/70 dark:bg-slate-600/50"><div class="${barColor} h-1 rounded-full" style="width:${Math.min(pct,100).toFixed(0)}%"></div></div>
-        </div>`;
-      }).join('');
+      qtyGrid.innerHTML = ['2027','2028','2029','2030','2031'].map((yr, i) =>
+        occCellHtml(yr, qtys[i], occs[i], cap > 0 ? Math.round(occs[i]) : -1, true)
+      ).join('');
 
       const ctx = document.getElementById('dmfChart').getContext('2d');
       if (dmfChartInstance) dmfChartInstance.destroy();
-
-      const isDark    = document.documentElement.classList.contains('dark');
-      const textColor = isDark ? '#cbd5e1' : '#475569';
-      const gridColor = isDark ? '#334155' : '#e2e8f0';
-      const baseColor = '#9333ea';
-      const bgColors  = occs.map(p => { const r = Math.round(p); return r >= 115 ? '#ef4444' : r >= 101 ? '#eab308' : '#22c55e'; });
-
-      dmfChartInstance = new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels: ['2027','2028','2029','2030','2031'],
-          datasets: [
-            { data: occs, backgroundColor: bgColors, borderRadius: 6, borderSkipped: false, barPercentage: 0.7, datalabels: { display: true } },
-            { type: 'line', data: occs, borderColor: baseColor + 'bb', borderWidth: 2, pointBackgroundColor: baseColor, pointBorderColor: 'transparent', pointRadius: 4, tension: 0.4, fill: false, datalabels: { display: false } }
-          ]
-        },
-        options: {
-          responsive: true, maintainAspectRatio: false, layout: { padding: { top: 30 } },
-          plugins: {
-            legend: { display: false },
-            tooltip: {
-              backgroundColor: isDark ? '#1e293b' : '#ffffff', titleColor: isDark ? '#ffffff' : '#0f172a',
-              bodyColor: isDark ? '#cbd5e1' : '#475569', borderColor: isDark ? '#334155' : '#cbd5e1',
-              borderWidth: 1, padding: 12, displayColors: false,
-              titleFont: { size: 14 }, bodyFont: { size: 15, weight: 'bold' },
-              callbacks: { label: (context) => t('tooltipLabel')(context.raw) }
-            },
-            datalabels: { anchor: 'end', align: 'top', color: textColor, font: { weight: 'bold', size: 14 }, formatter: (value) => t('datalabelFmt')(value) }
-          },
-          scales: {
-            x: { grid: { display: false }, border: { display: false }, ticks: { color: textColor, font: { weight: 'bold', size: 14 } } },
-            y: { beginAtZero: true, suggestedMax: 100, grid: { color: gridColor }, border: { display: false }, ticks: { color: textColor, font: { size: 12 }, callback: (value) => value + '%' } }
-          }
-        }
-      });
+      dmfChartInstance = makeOccupancyChart(ctx, occs, '#9333ea');
     }
 
     // e-Drive referansına tıklanınca açılan detay. Kit detay kabuğunu (kitDetailView) kullanır:
@@ -2301,6 +2265,7 @@
       const matchedLines = Object.keys(eDriveLineStats).filter(k => wanted.has(k)).map(k => eDriveLineStats[k].lineName);
 
       document.getElementById('kd-kitname').textContent = ref;
+      document.getElementById('kd-multirow').classList.add('hidden');
 
       // Müşteri bilgisi: e-Drive referansları için sabit Valeo-A05 + Türkiye bayrağı (PPCA/Disk gibi)
       const custRow = document.getElementById('kd-customer-row');
@@ -2328,12 +2293,13 @@
       const grid = document.getElementById('components-grid');
       const hasLines = matchedLines.length > 0;
       edriveCol.classList.toggle('hidden', !hasLines);
+      noCompMsg.textContent = t('noEDriveLines');
       noCompMsg.classList.toggle('hidden', hasLines);
       grid.classList.remove('hidden');
       grid.className = 'grid grid-cols-1 gap-8 mt-2';
 
       // Gövde: referansın geçtiği kapasite kartlı e-Drive hatları (grafik + CT/TRP/vardiya + doluluk)
-      if (hasLines) renderEDriveSection(matchedLines, { onlyLines: matchedLines, hideRefs: true });
+      if (hasLines) renderEDriveSection(matchedLines, { hideRefs: true });
 
       els.empty.classList.add('hidden');
       els.compView.classList.add('hidden');
@@ -2351,19 +2317,15 @@
       wrap.innerHTML = '';
 
       // Hatlar: kapasite kartı olan e-Drive hatları (MTP_summary'den gelen eDriveLineStats).
+      // eDriveLines verilirse (kit detayı: kitin hatları / referans detayı: referansın hatları)
+      // yalnızca o hatlar gösterilir; verilmezse tümü.
       // Referanslar aşağıda e-drive A/B (eDriveData) üzerinden hatla eşleştirilir; MAIN gerekmez.
-      // opts.onlyLines verilirse (referans detayı) yalnızca o hatlar gösterilir.
       let list = Object.keys(eDriveLineStats);
-      if (opts.onlyLines && opts.onlyLines.length) {
-        const wanted = new Set(opts.onlyLines.map(l => lineKeyVD(String(l))));
+      if (eDriveLines && eDriveLines.length) {
+        const wanted = new Set(eDriveLines.map(l => lineKeyVD(String(l))));
         list = list.filter(k => wanted.has(k));
       }
       if (!list.length) return;
-
-      const isDark    = document.documentElement.classList.contains('dark');
-      const textColor = isDark ? '#cbd5e1' : '#475569';
-      const gridColor = isDark ? '#334155' : '#e2e8f0';
-      const baseColor = '#14b8a6';
 
       const chartData = [];  // { idx, occs }
 
@@ -2376,39 +2338,15 @@
         const refChips = refs.map(r => `<span class="px-2 py-1 text-xs rounded-md bg-slate-100 dark:bg-slate-700/60 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 font-medium">${escapeHtml(r)}</span>`).join('');
         const refsHtml = (!opts.hideRefs && refs.length) ? `<div class="glass-panel rounded-xl p-4"><div class="flex items-center gap-2 mb-2.5"><span class="text-xs font-bold text-slate-500 uppercase tracking-wider">${t('references')}</span><span class="text-xs font-black text-teal-600 dark:text-teal-400">${refs.length}</span></div><div class="flex flex-wrap gap-1.5 max-h-44 overflow-y-auto">${refChips}</div></div>` : '';
 
-        let trpFormatted = stats.trp;
-        if (stats.trp !== '-') {
-          let trpNum = Number(stats.trp);
-          if (!isNaN(trpNum)) {
-            if (trpNum <= 1 && trpNum > 0) trpNum = trpNum * 100;
-            trpFormatted = parseFloat(trpNum.toFixed(1)) + '%';
-          } else if (!String(stats.trp).includes('%')) {
-            trpFormatted = String(trpFormatted) + '%';
-          }
-        }
+        const trpFormatted = formatTrp(stats.trp);
 
         const qtys = [stats.v26, stats.v27, stats.v28, stats.v29, stats.v30];
         const occs = qtys.map(v => cap > 0 ? (v / cap) * 100 : 0);
         chartData.push({ idx, occs });
 
-        const cells = ['2027','2028','2029','2030','2031'].map((yr, i) => {
-          const pct = occs[i];
-          const cp = cap > 0 ? Math.round(pct) : -1;
-          const [bg, border, text] = cp >= 115
-            ? ['bg-red-50 dark:bg-red-900/30', 'border-red-300 dark:border-red-700', 'text-red-600 dark:text-red-400']
-            : cp >= 101
-            ? ['bg-yellow-50 dark:bg-yellow-900/30', 'border-yellow-300 dark:border-yellow-700', 'text-yellow-600 dark:text-yellow-400']
-            : cp >= 0
-            ? ['bg-green-50 dark:bg-green-900/30', 'border-green-300 dark:border-green-700', 'text-green-600 dark:text-green-400']
-            : ['bg-white/60 dark:bg-slate-900/50', 'border-slate-200 dark:border-slate-700', 'text-slate-800 dark:text-slate-200'];
-          const barColor = cp >= 115 ? 'bg-red-500' : cp >= 101 ? 'bg-yellow-500' : 'bg-green-500';
-          return `<div class="${bg} rounded-lg p-1.5 sm:p-3 border ${border} shadow-sm">
-            <span class="block text-[10px] sm:text-xs text-slate-500 font-bold mb-0.5">${yr}</span>
-            <span class="font-black text-xs sm:text-base ${text}">${fmt(qtys[i])}</span>
-            <span class="block text-[10px] sm:text-xs font-bold mt-0.5 ${text}">%${pct.toFixed(0)}</span>
-            <div class="mt-1 h-1 rounded-full bg-slate-200/70 dark:bg-slate-600/50"><div class="${barColor} h-1 rounded-full" style="width:${Math.min(pct,100).toFixed(0)}%"></div></div>
-          </div>`;
-        }).join('');
+        const cells = ['2027','2028','2029','2030','2031'].map((yr, i) =>
+          occCellHtml(yr, qtys[i], occs[i], cap > 0 ? Math.round(occs[i]) : -1, true)
+        ).join('');
 
         return `<div class="flex flex-col gap-4 ${idx > 0 ? 'pt-6 border-t border-slate-200/70 dark:border-slate-700/60' : ''}">
           <div>
@@ -2433,48 +2371,22 @@
 
       // hat çipine tıklayınca o hattı ara
       wrap.querySelectorAll('.ed-line-chip').forEach(chip => {
-        chip.addEventListener('click', () => {
+        chip.onclick = () => {
           const ln = chip.dataset.line || '';
           els.compSearch.value = ln;
           els.kitSelect.value = '';
           renderCompSearchResults(ln.toLowerCase());
           closeSidebarOnMobile();
-        });
+        };
+        wireCardKeys(chip);
       });
 
       // her hat için grafiği oluştur
       chartData.forEach(({ idx, occs }) => {
         const cv = document.getElementById('eDriveChart_' + idx);
         if (!cv) return;
-        const bgColors = occs.map(p => { const r = Math.round(p); return r >= 115 ? '#ef4444' : r >= 101 ? '#eab308' : '#22c55e'; });
-        eDriveChartInstances.push(new Chart(cv.getContext('2d'), {
-          type: 'bar',
-          data: {
-            labels: ['2027','2028','2029','2030','2031'],
-            datasets: [
-              { data: occs, backgroundColor: bgColors, borderRadius: 6, borderSkipped: false, barPercentage: 0.7, datalabels: { display: true } },
-              { type: 'line', data: occs, borderColor: baseColor + 'bb', borderWidth: 2, pointBackgroundColor: baseColor, pointBorderColor: 'transparent', pointRadius: 4, tension: 0.4, fill: false, datalabels: { display: false } }
-            ]
-          },
-          options: {
-            responsive: true, maintainAspectRatio: false, layout: { padding: { top: 30 } },
-            plugins: {
-              legend: { display: false },
-              tooltip: {
-                backgroundColor: isDark ? '#1e293b' : '#ffffff', titleColor: isDark ? '#ffffff' : '#0f172a',
-                bodyColor: isDark ? '#cbd5e1' : '#475569', borderColor: isDark ? '#334155' : '#cbd5e1',
-                borderWidth: 1, padding: 12, displayColors: false,
-                titleFont: { size: 14 }, bodyFont: { size: 15, weight: 'bold' },
-                callbacks: { label: (context) => t('tooltipLabel')(context.raw) }
-              },
-              datalabels: { anchor: 'end', align: 'top', color: textColor, font: { weight: 'bold', size: 14 }, formatter: (value) => t('datalabelFmt')(value) }
-            },
-            scales: {
-              x: { grid: { display: false }, border: { display: false }, ticks: { color: textColor, font: { weight: 'bold', size: 14 } } },
-              y: { beginAtZero: true, suggestedMax: 100, grid: { color: gridColor }, border: { display: false }, ticks: { color: textColor, font: { size: 12 }, callback: (value) => value + '%' } }
-            }
-          }
-        }));
+        const inst = makeOccupancyChart(cv.getContext('2d'), occs, '#14b8a6');
+        if (inst) eDriveChartInstances.push(inst);
       });
     }
 
@@ -2504,18 +2416,8 @@
       const stats = lineStats[key] || { cycleTime: '-', trp: '-', shiftDay: '-', annualCapacity: 0 };
       const cap   = stats.annualCapacity;
 
-      let trpFormatted = stats.trp;
-      if (stats.trp !== '-') {
-        let trpNum = Number(stats.trp);
-        if (!isNaN(trpNum)) {
-          if (trpNum <= 1 && trpNum > 0) trpNum = trpNum * 100;
-          trpFormatted = parseFloat(trpNum.toFixed(1)) + '%';
-        } else if (!String(stats.trp).includes('%')) {
-          trpFormatted += '%';
-        }
-      }
       document.getElementById('pc-ct').textContent  = stats.cycleTime;
-      document.getElementById('pc-trp').textContent = trpFormatted;
+      document.getElementById('pc-trp').textContent = formatTrp(stats.trp);
       document.getElementById('pc-sd').textContent  = stats.shiftDay;
       document.getElementById('pc-cap').textContent = cap > 0 ? fmt(cap) : '-';
       document.getElementById('pc-chart-title').textContent = cap > 0
@@ -2548,69 +2450,18 @@
 
       document.getElementById('pc-qty-grid').innerHTML = ['2027','2028','2029','2030','2031'].map((yr, i) => {
         const pct = cap > 0 ? occs[i] : -1;
-        const cp = Math.round(pct);
-        const [bg, border, text] = cp >= 115
-          ? ['bg-red-50 dark:bg-red-900/30', 'border-red-300 dark:border-red-700', 'text-red-600 dark:text-red-400']
-          : cp >= 101
-          ? ['bg-yellow-50 dark:bg-yellow-900/30', 'border-yellow-300 dark:border-yellow-700', 'text-yellow-600 dark:text-yellow-400']
-          : cp >= 0
-          ? ['bg-green-50 dark:bg-green-900/30', 'border-green-300 dark:border-green-700', 'text-green-600 dark:text-green-400']
-          : ['bg-white/60 dark:bg-slate-900/50', 'border-slate-200 dark:border-slate-700', 'text-slate-800 dark:text-slate-200'];
-        const barColor = cp >= 115 ? 'bg-red-500' : cp >= 101 ? 'bg-yellow-500' : 'bg-green-500';
-        const pctHtml  = cap > 0
-          ? `<span class="block text-[10px] sm:text-xs font-bold mt-0.5 ${text}">%${pct.toFixed(0)}</span>
-             <div class="mt-1 h-1 rounded-full bg-slate-200/70 dark:bg-slate-600/50"><div class="${barColor} h-1 rounded-full" style="width:${Math.min(pct,100).toFixed(0)}%"></div></div>`
-          : '';
-        return `<div class="${bg} rounded-lg p-1.5 sm:p-3 border ${border} shadow-sm">
-          <span class="block text-[10px] sm:text-xs text-slate-500 font-bold mb-0.5">${yr}</span>
-          <span class="font-black text-xs sm:text-base ${text}">${fmt(qtys[i])}</span>
-          ${pctHtml}
-        </div>`;
+        return occCellHtml(yr, qtys[i], pct, Math.round(pct), cap > 0);
       }).join('');
 
       const ctx = document.getElementById('pfwCompChart').getContext('2d');
       if (pfwCompChartInstance) pfwCompChartInstance.destroy();
-
-      const isDark    = document.documentElement.classList.contains('dark');
-      const textColor = isDark ? '#cbd5e1' : '#475569';
-      const gridColor = isDark ? '#334155' : '#e2e8f0';
-      const baseColor = '#f97316';
-      const chartData = cap > 0 ? occs : qtys;
-      const bgColors  = cap > 0
-        ? occs.map(p => { const r = Math.round(p); return r >= 115 ? '#ef4444' : r >= 101 ? '#eab308' : '#22c55e'; })
-        : qtys.map(() => baseColor);
-
-      pfwCompChartInstance = new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels: ['2027','2028','2029','2030','2031'],
-          datasets: [
-            { data: chartData, backgroundColor: bgColors, borderRadius: 6, borderSkipped: false, barPercentage: 0.7, datalabels: { display: true } },
-            { type: 'line', data: chartData, borderColor: baseColor + 'bb', borderWidth: 2, pointBackgroundColor: baseColor, pointBorderColor: 'transparent', pointRadius: 4, tension: 0.4, fill: false, datalabels: { display: false } }
-          ]
-        },
-        options: {
-          responsive: true, maintainAspectRatio: false, layout: { padding: { top: 30 } },
-          plugins: {
-            legend: { display: false },
-            tooltip: {
-              backgroundColor: isDark ? '#1e293b' : '#ffffff', titleColor: isDark ? '#ffffff' : '#0f172a',
-              bodyColor: isDark ? '#cbd5e1' : '#475569', borderColor: isDark ? '#334155' : '#cbd5e1',
-              borderWidth: 1, padding: 12, displayColors: false,
-              titleFont: { size: 14 }, bodyFont: { size: 15, weight: 'bold' },
-              callbacks: { label: (context) => cap > 0 ? t('tooltipLabel')(context.raw) : fmt(context.raw) }
-            },
-            datalabels: { anchor: 'end', align: 'top', color: textColor, font: { weight: 'bold', size: 14 },
-              formatter: (value) => cap > 0 ? t('datalabelFmt')(value) : fmt(value) }
-          },
-          scales: {
-            x: { grid: { display: false }, border: { display: false }, ticks: { color: textColor, font: { weight: 'bold', size: 14 } } },
-            y: { beginAtZero: true, suggestedMax: cap > 0 ? 100 : undefined, grid: { color: gridColor }, border: { display: false },
-              ticks: { color: textColor, font: { size: 12 }, callback: (v) => cap > 0 ? v + '%' : fmt(v) } }
-          }
-        }
-      });
+      pfwCompChartInstance = makeOccupancyChart(ctx, cap > 0 ? occs : qtys, '#f97316', { isPercent: cap > 0 });
     }
+
+    // Klavye erişimi: statik tıklanabilir rozetler + ürün kartları
+    document.querySelectorAll('.product-card').forEach(wireCardKeys);
+    ['ppca-line-badge','disk-line-badge','dmf-line-badge','kd-cust-code','kd-family-group','kd-disk-family-group','pc-line-badge']
+      .forEach(id => wireCardKeys(document.getElementById(id)));
   </script>
 
 <style>
@@ -2851,6 +2702,7 @@
 <script>
   var SESSION_ID = "<?= sessionId ?>";
   var TIMEOUT_MS = <?= timeoutMin ?> * 60 * 1000;
+  var EXEC_URL   = "<?= execUrl ?>";
 
   var sessionStart = Date.now();
   var hiddenAt     = null;
@@ -2859,7 +2711,19 @@
   function _logExit(exitTimestamp, durationMs) {
     if (exitLogged) return;
     exitLogged = true;
-    google.script.run.logExit(SESSION_ID, exitTimestamp, Math.round(durationMs / 1000));
+    var durationSec = Math.round(durationMs / 1000);
+    // Sayfa kapanırken google.script.run çoğu zaman iptal edilir; sendBeacon
+    // tarayıcı tarafından kapanış sonrasında da teslim edilir (Code.gs doPost karşılar)
+    var sent = false;
+    try {
+      if (navigator.sendBeacon && EXEC_URL) {
+        var payload = JSON.stringify({ action: 'logExit', sessionId: SESSION_ID, exitTimestamp: exitTimestamp, durationSec: durationSec });
+        sent = navigator.sendBeacon(EXEC_URL, new Blob([payload], { type: 'text/plain' }));
+      }
+    } catch (e) { sent = false; }
+    if (!sent) {
+      try { google.script.run.logExit(SESSION_ID, exitTimestamp, durationSec); } catch (e) {}
+    }
   }
 
   function _newSession() {
@@ -2889,6 +2753,13 @@
   });
 
   window.addEventListener('beforeunload', function() {
+    if (exitLogged) return;
+    var exitAt = hiddenAt !== null ? hiddenAt : Date.now();
+    _logExit(exitAt, exitAt - sessionStart);
+  });
+
+  // Mobil tarayıcılarda beforeunload güvenilmez; pagehide daha tutarlı tetiklenir
+  window.addEventListener('pagehide', function() {
     if (exitLogged) return;
     var exitAt = hiddenAt !== null ? hiddenAt : Date.now();
     _logExit(exitAt, exitAt - sessionStart);

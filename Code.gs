@@ -1,21 +1,54 @@
+// ─── Yapılandırma: tüm dosya/klasör kimlikleri ve sabitler tek yerde ──────────
+var PROJECT_NAME          = 'Capacity_C09';
+var LOG_SHEET             = PROJECT_NAME + '_GirisLoglari';
+var TIMEOUT_MIN           = 10;
+var FB_SHEET_ID           = '1dT55ZmEYScXA-BLpWDimuBtTzGZi13Qn0mAdbc2iWyM';
+var FEEDBACK_NOTIFY_EMAIL = 'mustafa.erdogan@valeo.com';
+var MAIN_SS_ID            = '1SpLc32ad9K7HEMUWdMDNMxIRkKe73qaK0Pxw4SZvARk';
+var SUMMARY_SS_ID         = '1Lx2IniscO0hfdnZi12chv24dooB_pePJtUjKolB97C0';
+var EDRIVE_SS_ID          = '1pdPtUMFP8TYK8YCeEzIrSOZxL-Km7FzJBY5CXfLAU14';
+var LAYOUT_FOLDER_ID      = '1X2jhb_li2c-WxKBld8p3GHUeZMwuOR_H';
+var EDRIVE_IMG_FILE_ID    = '1diFZjZq6mWHjzxp07VjD-DuXcoNq54Uy';
+var CACHE_KEY             = 'spreadsheet_data_v34';
+// MTP_summary'de e-Drive hat bloğunun beklenen ilk satırı (4 satır okunur);
+// blok kaymışsa (satır eklendi/silindi) hat adlarıyla tüm sayfa taranır
+var EDRIVE_STATS_ROW      = 97;
+// MTP_summary'de DMF/PFW yedek blokları (isimle bulunamazsa): DMF 50-53, PFW 54-57
+var DMF_FALLBACK_ROW      = 50;
+var PFW_FALLBACK_ROW      = 54;
+
 function doGet() {
   var session  = createSession();
   var template = HtmlService.createTemplateFromFile('Index');
   template.sessionId  = session.sessionId;
   template.userEmail  = session.email;
   template.timeoutMin = TIMEOUT_MIN;
+  var execUrl = '';
+  try { execUrl = ScriptApp.getService().getUrl() || ''; } catch (e) {}
+  template.execUrl = execUrl;
   return template.evaluate()
     .setTitle('C09 Capacity Dashboard')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
     .addMetaTag('viewport', 'width=device-width, initial-scale=1');
 }
 
+// Çıkış kaydı: sayfa kapanırken tarayıcının sendBeacon isteği buraya düşer
+// (google.script.run kapanış sırasında çoğu zaman iptal edildiği için)
+function doPost(e) {
+  try {
+    var p = JSON.parse((e && e.postData && e.postData.contents) || '{}');
+    if (p.action === 'logExit' && p.sessionId) {
+      logExit(String(p.sessionId), Number(p.exitTimestamp) || Date.now(), Number(p.durationSec) || 0);
+    }
+  } catch (err) {}
+  return ContentService.createTextOutput('ok');
+}
+
 function getEDriveImage() {
-  return getLayoutImage('1diFZjZq6mWHjzxp07VjD-DuXcoNq54Uy');
+  return getLayoutImage(EDRIVE_IMG_FILE_ID);
 }
 
 // ─── Feedback Widget ───────────────────────────────────────────────────────────
-var FB_SHEET_ID = '1dT55ZmEYScXA-BLpWDimuBtTzGZi13Qn0mAdbc2iWyM';
 
 function submitFeedback(payload) {
   var ss      = SpreadsheetApp.openById(FB_SHEET_ID);
@@ -53,8 +86,6 @@ function submitFeedback(payload) {
 
   return { success: true, id: id };
 }
-
-var FEEDBACK_NOTIFY_EMAIL = 'mustafa.erdogan@valeo.com';
 
 function _notifyFeedbackByEmail(id, email, payload, now, attachmentUrl) {
   try {
@@ -99,7 +130,10 @@ function _saveFeedbackImage(feedbackId, image) {
     var fileName   = feedbackId + '_' + (image.fileName || 'ekran-goruntusu');
     var blob       = Utilities.newBlob(Utilities.base64Decode(base64Data), image.mimeType, fileName);
     var file       = folder.createFile(blob);
-    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    // Şirket dışına açılmasın: yalnızca domain içi link paylaşımı; domain yoksa dosya özel kalır
+    try {
+      file.setSharing(DriveApp.Access.DOMAIN_WITH_LINK, DriveApp.Permission.VIEW);
+    } catch (e) {}
     return file.getUrl();
   } catch (e) {
     return '';
@@ -107,10 +141,8 @@ function _saveFeedbackImage(feedbackId, image) {
 }
 
 // ─── Giriş/Çıkış Loglama ──────────────────────────────────────────────────────
-// FB_SHEET_ID Modül 1'de tanımlı — aynı değişkeni kullanır
-var PROJECT_NAME = 'Capacity_C09';
-var LOG_SHEET    = PROJECT_NAME + '_GirisLoglari';
-var TIMEOUT_MIN  = 10;
+// FB_SHEET_ID / PROJECT_NAME / LOG_SHEET / TIMEOUT_MIN dosyanın başındaki
+// yapılandırma bloğunda tanımlıdır.
 
 function createSession() {
   var sheet     = _getOrCreateLogSheet();
@@ -125,14 +157,18 @@ function logExit(sessionId, exitTimestamp, durationSec) {
   try { lock.waitLock(3000); } catch (e) { return; }
   try {
     var sheet = _getOrCreateLogSheet();
-    var data  = sheet.getDataRange().getValues();
-    for (var i = data.length - 1; i >= 1; i--) {
-      if (data[i][0] === sessionId && data[i][5] === 'Açık') {
-        sheet.getRange(i + 1, 4).setValue(new Date(exitTimestamp));
-        sheet.getRange(i + 1, 5).setValue(Math.round(durationSec / 60 * 10) / 10);
-        sheet.getRange(i + 1, 6).setValue('Tamamlandı');
+    // Oturum ID benzersiz (UUID); tüm sayfayı okumak yerine TextFinder ile bulunur
+    var finder = sheet.createTextFinder(String(sessionId)).matchEntireCell(true);
+    var cell = finder.findNext();
+    while (cell) {
+      var row = cell.getRow();
+      if (cell.getColumn() === 1 && row > 1 && sheet.getRange(row, 6).getValue() === 'Açık') {
+        sheet.getRange(row, 4).setValue(new Date(exitTimestamp));
+        sheet.getRange(row, 5).setValue(Math.round(durationSec / 60 * 10) / 10);
+        sheet.getRange(row, 6).setValue('Tamamlandı');
         break;
       }
+      cell = finder.findNext();
     }
   } finally {
     lock.releaseLock();
@@ -152,7 +188,7 @@ function _getOrCreateLogSheet() {
 
 function getLayoutMap() {
   try {
-    var folder = DriveApp.getFolderById('1X2jhb_li2c-WxKBld8p3GHUeZMwuOR_H');
+    var folder = DriveApp.getFolderById(LAYOUT_FOLDER_ID);
     var files = folder.getFiles();
     var map = {};
     while (files.hasNext()) {
@@ -182,14 +218,13 @@ function getLayoutImage(fileId) {
 }
 
 function getSpreadsheetData() {
-  const CACHE_KEY = 'spreadsheet_data_v33';
   const cache = CacheService.getScriptCache();
   const cached = cache.get(CACHE_KEY);
   if (cached) {
     try {
       const result = JSON.parse(cached);
       // DMF/PFW istatistiklerini her zaman sheet'ten canlı güncelle (cache'i bypass et)
-      const summarySs = SpreadsheetApp.openById('1Lx2IniscO0hfdnZi12chv24dooB_pePJtUjKolB97C0');
+      const summarySs = SpreadsheetApp.openById(SUMMARY_SS_ID);
       const summarySheet = summarySs.getSheetByName('MTP_summary');
       if (summarySheet && result.lineStats) {
         const freshStats = readDmfPfwStats(summarySheet);
@@ -199,12 +234,9 @@ function getSpreadsheetData() {
     } catch (e) { /* cache bozuk, devam et */ }
   }
 
-  const mainSsId = '1SpLc32ad9K7HEMUWdMDNMxIRkKe73qaK0Pxw4SZvARk';
-  const summarySsId = '1Lx2IniscO0hfdnZi12chv24dooB_pePJtUjKolB97C0';
-
   try {
-    const mainSs = SpreadsheetApp.openById(mainSsId);
-    const summarySs = SpreadsheetApp.openById(summarySsId);
+    const mainSs = SpreadsheetApp.openById(MAIN_SS_ID);
+    const summarySs = SpreadsheetApp.openById(SUMMARY_SS_ID);
     
     const mtpSheet = mainSs.getSheetByName("MTP'27");
     const diagSheet = mainSs.getSheetByName('Diaphragm Line');
@@ -215,8 +247,9 @@ function getSpreadsheetData() {
     }
     
     // 1. HAT BAZLI KAPASİTE VERİLERİ (TÜM BOŞLUKLARI SİLEREK VE BÜYÜK HARFLE EŞLE)
+    // 17 sütun okunur (A-Q): 4b'deki e-Drive bloğu da aynı okumayı kullanır (M-Q adetleri için)
     const summaryLastRow = Math.max(summarySheet.getLastRow(), 2);
-    const summaryRaw = summarySheet.getRange(2, 1, summaryLastRow - 1, 14).getValues();
+    const summaryRaw = summarySheet.getRange(2, 1, summaryLastRow - 1, 17).getValues();
     const lineStatsMap = {};
     
     summaryRaw.forEach((row) => {
@@ -236,7 +269,7 @@ function getSpreadsheetData() {
     });
 
     // DMF/PFW de diğer hatlar gibi isimle okunur; isimle bulunamazsa eski sabit satırlara (50-53/54-57) düşer
-    Object.assign(lineStatsMap, readDmfPfwStats(summarySheet));
+    Object.assign(lineStatsMap, readDmfPfwStats(summarySheet, summaryRaw));
 
     // 2. DIAPHRAGM FIRIN VERİLERİ
     const diagLastRow = Math.max(diagSheet.getLastRow(), 1);
@@ -256,8 +289,9 @@ function getSpreadsheetData() {
     }
     
     // 3. PFW SHEET → DMF ref → PFW/SpringGuide/DrivePlate haritası
-    // Aynı DMF birden çok PFW hattına gidebilir; tekil alanlar (kit kartı / SG / DP) son
-    // satırı tutar, pfwLines ise tüm farklı PFW hatlarını biriktirir (PFW adedini bölmek için).
+    // Aynı DMF birden çok PFW hattına gidebilir; tekil alanlar (SG / DP) son satırı tutar,
+    // pfwLines tüm farklı PFW hatlarını (adet bölmek için), pfwPairs ise tüm farklı
+    // PFW referans+hat çiftlerini (kit kartında hepsini göstermek için) biriktirir.
     const pfwSheet = mainSs.getSheetByName('PFW');
     const pfwMap = {};
     if (pfwSheet) {
@@ -270,7 +304,7 @@ function getSpreadsheetData() {
         const key = dmfRef.toUpperCase();
         if (!pfwMap[key]) {
           pfwMap[key] = { pfw: '', pfwLine: '', springGuide: '', springGuideLine: '',
-                          drivePlate: '', drivePlateLine: '', pfwLines: [] };
+                          drivePlate: '', drivePlateLine: '', pfwLines: [], pfwPairs: [] };
         }
         const e = pfwMap[key];
         e.pfw             = pfwRef;
@@ -281,6 +315,8 @@ function getSpreadsheetData() {
         e.drivePlateLine  = String(row[8] || '').trim();  // I
         const pl = e.pfwLine;
         if (pl && !e.pfwLines.some(x => normLineName(x) === normLineName(pl))) e.pfwLines.push(pl);
+        if (!e.pfwPairs.some(x => x.ref === pfwRef && normLineName(x.line) === normLineName(pl)))
+          e.pfwPairs.push({ ref: pfwRef, line: pl });
       });
     }
 
@@ -291,7 +327,7 @@ function getSpreadsheetData() {
     const eDriveRefSet = {};       // TAM ref (büyük harf) -> true  (MAIN O sütunu ile eşleştirme)
     const eDriveBaseToLines = {};  // taban no -> [ham hat adları]
     try {
-      const eDriveSheet = SpreadsheetApp.openById('1pdPtUMFP8TYK8YCeEzIrSOZxL-Km7FzJBY5CXfLAU14').getSheetByName('e-drive');
+      const eDriveSheet = SpreadsheetApp.openById(EDRIVE_SS_ID).getSheetByName('e-drive');
       if (eDriveSheet) {
         const eDriveLastRow = eDriveSheet.getLastRow();
         if (eDriveLastRow >= 2) {
@@ -313,26 +349,42 @@ function getSpreadsheetData() {
       }
     } catch(e) {}
 
-    // 4b. E-DRIVE hat verileri (MTP_summary satır 97-100): C=hat, D/E/F, K=kapasite, M-Q=2027-2031 adet
+    // 4b. E-DRIVE hat verileri (MTP_summary): C=hat, D=CT, E=TRP, F=vardiya, K=kapasite, M-Q=2027-2031 adet
+    //     Önce beklenen blok (EDRIVE_STATS_ROW..+3, şu an 97-100) okunur ve e-drive sayfasındaki hat
+    //     adlarıyla doğrulanır; blok kaymışsa (sheet'e satır eklendi/silindi) tüm sayfa isimle taranır.
     const eDriveLineStats = {};
     try {
-      summarySheet.getRange(97, 1, 4, 17).getValues().forEach(function(r) {
-        const lineName = String(r[2] || '').trim();   // E
+      const eDriveLineKeys = {};
+      eDriveData.forEach(function(e) { const k = normLineName(e.line); if (k) eDriveLineKeys[k] = true; });
+      const rowToStats = function(r) {
+        const lineName = String(r[2] || '').trim();   // C
         const key = normLineName(lineName);
         if (!key) return;
         eDriveLineStats[key] = {
           lineName:       lineName,
-          cycleTime:      r[3]  || '-',           // G
-          trp:            r[4]  || '-',           // H
-          shiftDay:       r[5]  || '-',           // I
-          annualCapacity: Number(r[10]) || 0,     // N
+          cycleTime:      r[3]  || '-',           // D
+          trp:            r[4]  || '-',           // E
+          shiftDay:       r[5]  || '-',           // F
+          annualCapacity: Number(r[10]) || 0,     // K
           v26: Number(r[12]) || 0,   // M — 2027
           v27: Number(r[13]) || 0,   // N — 2028
           v28: Number(r[14]) || 0,   // O — 2029
           v29: Number(r[15]) || 0,   // P — 2030
           v30: Number(r[16]) || 0    // Q — 2031
         };
-      });
+      };
+      // summaryRaw 2. satırdan başlar → sheet satırı N = summaryRaw[N-2]
+      const blockRows = summaryRaw.slice(EDRIVE_STATS_ROW - 2, EDRIVE_STATS_ROW + 2);
+      const hasAnyKey = Object.keys(eDriveLineKeys).length > 0;
+      const blockValid = !hasAnyKey || blockRows.some(function(r) { return eDriveLineKeys[normLineName(r[2])]; });
+      if (blockValid) {
+        blockRows.forEach(rowToStats);
+      } else {
+        summaryRaw.forEach(function(r) {
+          const k = normLineName(r[2]);
+          if (eDriveLineKeys[k] && !eDriveLineStats[k]) rowToStats(r);
+        });
+      }
     } catch(e) {}
 
     // Kapasite kartı OLAN e-Drive hatları (summary sırasıyla normalize anahtarlar)
@@ -362,8 +414,8 @@ function getSpreadsheetData() {
 
       const kitRef = String(row[40] || '').trim();  // AO sütunu
       // E-Drive: kit O-ref'i e-drive dosyasında varsa, parçanın taban no'su üzerinden
-      // tüm operasyon hatları bulunur; yalnızca kapasite kartı OLAN hatlar (summary
-      // 100-103) summary sırasıyla nest edilmek üzere diziye konur.
+      // tüm operasyon hatları bulunur; yalnızca kapasite kartı OLAN hatlar
+      // (eDriveLineStats, bkz. 4b) summary sırasıyla nest edilmek üzere diziye konur.
       let eDriveLines = [];
       const kitUp = kitRef.toUpperCase();
       if (eDriveRefSet[kitUp]) {
@@ -416,6 +468,10 @@ function getSpreadsheetData() {
       const serialized = JSON.stringify(result);
       if (serialized.length < 90000) {
         cache.put(CACHE_KEY, serialized, 900); // 15 dakika
+      } else {
+        // Cache limiti (~100KB) yaklaşıldı: veri cache'lenmiyor, her istek sheet'ten okunacak.
+        // Bu log görünmeye başlarsa veri küçültme / bölme gerekir.
+        Logger.log('UYARI: Veri ' + serialized.length + ' karakter, cache atlandı (limit ~90000).');
       }
     } catch (e) { /* veri önbellek limitini aşıyor, atla */ }
 
@@ -431,15 +487,16 @@ function normLineName(raw) {
   return String(raw || '').replace(/^\s*VD\s*\d+\s*/i, '').replace(/[^A-Z0-9]/gi, '').toUpperCase();
 }
 
-// DMF/PFW hat istatistikleri: önce isimle (DMF1-4 / PFW1-4), bulunamazsa eski sabit satırlardan (70-73 / 75-78)
-function readDmfPfwStats(sheet) {
+// DMF/PFW hat istatistikleri: önce isimle (DMF1-4 / PFW1-4), bulunamazsa sabit yedek
+// bloklardan (DMF_FALLBACK_ROW=50-53 / PFW_FALLBACK_ROW=54-57). preRead verilirse
+// (getSpreadsheetData tam okuma yaptıysa) sheet tekrar okunmaz.
+function readDmfPfwStats(sheet, preRead) {
   const stats = {};
   if (!sheet) return stats;
   const fixedLineNames = [['DMF1','DMF2','DMF3','DMF4'], ['PFW1','PFW2','PFW3','PFW4']];
   const dmfPfwKeys = { DMF1:1, DMF2:1, DMF3:1, DMF4:1, PFW1:1, PFW2:1, PFW3:1, PFW4:1 };
   try {
-    const lastRow = Math.max(sheet.getLastRow(), 2);
-    const data = sheet.getRange(2, 1, lastRow - 1, 14).getValues();
+    const data = preRead || sheet.getRange(2, 1, Math.max(sheet.getLastRow(), 2) - 1, 14).getValues();
     data.forEach(function(row) {
       const key = normLineName(row[2]);
       if (dmfPfwKeys[key]) {
@@ -452,7 +509,7 @@ function readDmfPfwStats(sheet) {
       }
     });
   } catch(e) {}
-  [50, 54].forEach(function(startRow, gi) {
+  [DMF_FALLBACK_ROW, PFW_FALLBACK_ROW].forEach(function(startRow, gi) {
     try {
       sheet.getRange(startRow, 4, 4, 8).getValues().forEach(function(r, i) {
         const key = fixedLineNames[gi][i];
@@ -471,9 +528,8 @@ function readDmfPfwStats(sheet) {
 }
 
 function getLineStats() {
-  const summarySsId = '1Lx2IniscO0hfdnZi12chv24dooB_pePJtUjKolB97C0';
   try {
-    const sheet = SpreadsheetApp.openById(summarySsId).getSheetByName('MTP_summary');
+    const sheet = SpreadsheetApp.openById(SUMMARY_SS_ID).getSheetByName('MTP_summary');
     return readDmfPfwStats(sheet);
   } catch(e) {
     return {};
@@ -481,7 +537,7 @@ function getLineStats() {
 }
 
 function clearCache() {
-  CacheService.getScriptCache().remove('spreadsheet_data_v33');
+  CacheService.getScriptCache().remove(CACHE_KEY);
   Logger.log('Cache temizlendi. Bir sonraki web app isteği sheet\'ten taze veri okuyacak.');
 }
 
@@ -541,8 +597,7 @@ function countryFlagUrl(raw) {
 }
 
 function debugDMFRows() {
-  const summarySsId = '1Lx2IniscO0hfdnZi12chv24dooB_pePJtUjKolB97C0';
-  const sheet = SpreadsheetApp.openById(summarySsId).getSheetByName('MTP_summary');
+  const sheet = SpreadsheetApp.openById(SUMMARY_SS_ID).getSheetByName('MTP_summary');
   const lastRow = sheet.getLastRow();
   const allData = sheet.getRange(2, 1, lastRow - 1, 14).getValues();
 
@@ -564,8 +619,7 @@ function debugDMFRows() {
 
 // PFW teşhisi: PFW2 adetleri nereye gidiyor? (çakışma / eşleşmeme tespiti)
 function debugPFW() {
-  const mainSsId = '1SpLc32ad9K7HEMUWdMDNMxIRkKe73qaK0Pxw4SZvARk';
-  const mainSs   = SpreadsheetApp.openById(mainSsId);
+  const mainSs   = SpreadsheetApp.openById(MAIN_SS_ID);
   const pfwSheet = mainSs.getSheetByName('PFW');
   const mtpSheet = mainSs.getSheetByName("MTP'27");
 
