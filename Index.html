@@ -960,13 +960,14 @@
     }
     const fmt = (num) => Math.round(Number(num) || 0).toLocaleString(t('locale'));
 
-    // TRP değerini yüzdeye çevirir (0-1 aralığı 100 ile çarpılır); tüm kartlarda ortak
+    // TRP değerini yüzdeye çevirir (0-1 aralığı 100 ile çarpılır); tüm kartlarda ortak.
+    // 2 ondalık gösterilir (ör. 0.71666 → %71.67); tam sayılar sade kalır (0.70 → %70).
     function formatTrp(trp) {
       if (trp === '-' || trp === undefined || trp === null || trp === '') return trp === '' ? '-' : trp;
       let trpNum = Number(trp);
       if (!isNaN(trpNum)) {
         if (trpNum <= 1 && trpNum > 0) trpNum = trpNum * 100;
-        return parseFloat(trpNum.toFixed(1)) + '%';
+        return parseFloat(trpNum.toFixed(2)) + '%';
       }
       return String(trp).includes('%') ? String(trp) : String(trp) + '%';
     }
