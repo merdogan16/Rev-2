@@ -9,7 +9,7 @@ var SUMMARY_SS_ID         = '1Lx2IniscO0hfdnZi12chv24dooB_pePJtUjKolB97C0';
 var EDRIVE_SS_ID          = '1pdPtUMFP8TYK8YCeEzIrSOZxL-Km7FzJBY5CXfLAU14';
 var LAYOUT_FOLDER_ID      = '1X2jhb_li2c-WxKBld8p3GHUeZMwuOR_H';
 var EDRIVE_IMG_FILE_ID    = '1diFZjZq6mWHjzxp07VjD-DuXcoNq54Uy';
-var CACHE_KEY             = 'spreadsheet_data_v34';
+var CACHE_KEY             = 'spreadsheet_data_v35';
 // MTP_summary'de e-Drive hat bloğunun beklenen ilk satırı (4 satır okunur);
 // blok kaymışsa (satır eklendi/silindi) hat adlarıyla tüm sayfa taranır
 var EDRIVE_STATS_ROW      = 97;
@@ -490,23 +490,32 @@ function normLineName(raw) {
 // DMF/PFW hat istatistikleri: önce isimle (DMF1-4 / PFW1-4), bulunamazsa sabit yedek
 // bloklardan (DMF_FALLBACK_ROW=50-53 / PFW_FALLBACK_ROW=54-57). preRead verilirse
 // (getSpreadsheetData tam okuma yaptıysa) sheet tekrar okunmaz.
+// İsim eşleşmesi TOLERANSLI: "DMF2" hem tam "DMF2" satırını hem de "DMF2 Kavrama"
+// gibi ekli satırları yakalar (ardından rakam gelmediği sürece — "DMF20" ile karışmaz).
+// Birden çok aday varsa kapasitesi (K) dolu olan seçilir; sonraki satırlar öncekini
+// EZMEZ (stray referans satırları gerçek kapasite satırını bozmaz). Böylece DMF/PFW
+// satırlarının adı ekli olduğunda ya da yeri kaydığında yanlış değer gelmez.
 function readDmfPfwStats(sheet, preRead) {
   const stats = {};
   if (!sheet) return stats;
   const fixedLineNames = [['DMF1','DMF2','DMF3','DMF4'], ['PFW1','PFW2','PFW3','PFW4']];
-  const dmfPfwKeys = { DMF1:1, DMF2:1, DMF3:1, DMF4:1, PFW1:1, PFW2:1, PFW3:1, PFW4:1 };
+  const targetKeys = ['DMF1','DMF2','DMF3','DMF4','PFW1','PFW2','PFW3','PFW4'];
   try {
     const data = preRead || sheet.getRange(2, 1, Math.max(sheet.getLastRow(), 2) - 1, 14).getValues();
-    data.forEach(function(row) {
-      const key = normLineName(row[2]);
-      if (dmfPfwKeys[key]) {
-        stats[key] = {
-          cycleTime:      row[3] || '-',
-          trp:            row[4] || '-',
-          shiftDay:       row[5] || '-',
-          annualCapacity: Number(row[10]) || 0
-        };
+    targetKeys.forEach(function(tk) {
+      let best = null;
+      for (let i = 0; i < data.length; i++) {
+        const row = data[i];
+        const k = normLineName(row[2]);
+        // tam eşleşme ya da "tk" ile başlayıp devamı rakam olmayan (DMF2 ✓ DMF2X ✓ DMF20 ✗)
+        if (k === tk || (k.indexOf(tk) === 0 && !/^[0-9]/.test(k.charAt(tk.length)))) {
+          const cap = Number(row[10]) || 0;
+          const cand = { cycleTime: row[3] || '-', trp: row[4] || '-', shiftDay: row[5] || '-', annualCapacity: cap };
+          if (cap > 0) { best = cand; break; }  // kapasiteli satır kesin doğru → dur
+          if (!best) best = cand;                // kapasitesiz ise ilk adayı tut
+        }
       }
+      if (best) stats[tk] = best;
     });
   } catch(e) {}
   [DMF_FALLBACK_ROW, PFW_FALLBACK_ROW].forEach(function(startRow, gi) {
@@ -596,24 +605,37 @@ function countryFlagUrl(raw) {
   return iso ? ('https://flagcdn.com/48x36/' + iso + '.png') : '';
 }
 
+// TEŞHİS: DMF/PFW satırlarının summary'de nerede olduğunu, hangi değerleri
+// içerdiğini ve kodun bunlar için NE çözümlediğini tek log'da gösterir.
+// Apps Script editöründe fonksiyon listesinden debugDMFRows seç → Çalıştır →
+// "İcra günlüğü" çıktısını kopyala.
 function debugDMFRows() {
   const sheet = SpreadsheetApp.openById(SUMMARY_SS_ID).getSheetByName('MTP_summary');
   const lastRow = sheet.getLastRow();
   const allData = sheet.getRange(2, 1, lastRow - 1, 14).getValues();
 
-  Logger.log('=== MTP_summary içinde DMF key üreten TÜM satırlar ===');
+  Logger.log('=== A) DMF/PFW anahtarı üreten TÜM satırlar (satır no + C adı + değerler) ===');
   allData.forEach((row, idx) => {
     const rowNum = idx + 2;
-    const rawName = String(row[2] || row[1] || '');
-    const key = normLineName(rawName);
-    if (key.startsWith('DMF')) {
-      Logger.log('Satır ' + rowNum + ': B=' + row[1] + ' C=' + row[2] + ' key=' + key +
-        ' CT=' + row[3] + ' TRP=' + row[4] + ' SD=' + row[5] + ' Cap=' + row[10]);
+    const key = normLineName(String(row[2] || row[1] || ''));
+    if (key.startsWith('DMF') || key.startsWith('PFW')) {
+      Logger.log('Satır ' + rowNum + ': C="' + row[2] + '" key=' + key +
+        ' | D(CT)=' + row[3] + ' E(TRP)=' + row[4] + ' F(SD)=' + row[5] +
+        ' G=' + row[6] + ' H=' + row[7] + ' I=' + row[8] + ' J=' + row[9] + ' K(Cap)=' + row[10]);
     }
   });
-  Logger.log('=== Explicit blok (B50:K53) ===');
-  sheet.getRange(50, 2, 4, 10).getValues().forEach((r, i) => {
-    Logger.log('Satır ' + (50+i) + ': B=' + r[0] + ' CT=' + r[2] + ' TRP=' + r[3] + ' Cap=' + r[9]);
+
+  Logger.log('=== B) Sabit yedek bloklar (DMF 50-53 / PFW 54-57), C-K sütunları ===');
+  sheet.getRange(50, 3, 8, 9).getValues().forEach((r, i) => {
+    Logger.log('Satır ' + (50+i) + ': C="' + r[0] + '" D(CT)=' + r[1] + ' E(TRP)=' + r[2] +
+      ' F(SD)=' + r[3] + ' K(Cap)=' + r[8]);
+  });
+
+  Logger.log('=== C) Kodun ŞU AN çözümlediği DMF/PFW değerleri (dashboard bunu kullanır) ===');
+  const resolved = readDmfPfwStats(sheet);
+  ['DMF1','DMF2','DMF3','DMF4','PFW1','PFW2','PFW3','PFW4'].forEach(k => {
+    const s = resolved[k];
+    Logger.log(k + ' → ' + (s ? ('CT=' + s.cycleTime + ' TRP=' + s.trp + ' SD=' + s.shiftDay + ' Cap=' + s.annualCapacity) : '(bulunamadı)'));
   });
 }
 
