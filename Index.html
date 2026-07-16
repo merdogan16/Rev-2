@@ -794,7 +794,7 @@
         noCapacityProduct:    'Kapasite dosyasına alınmamış ürün: SMF, Rulman vb.',
         noEDriveLines:        'Bu e-Drive referansı için kapasite kartı olan hat bulunamadı.',
         multiRecordNote:      (n) => `${n} kayıt toplamı`,
-        multiRecordHint:      'Bu kit ana listede birden çok satırda geçiyor. Yıllık adetler tüm satırların toplamıdır; komponent/hat bilgileri ilk satırdan gösterilir.',
+        multiRecordHint:      'Bu kit ana listede birden çok satırda geçiyor. Yıllık adetler tüm satırların toplamıdır; her komponent, o komponenti içeren satırdan birleştirilerek gösterilir.',
         recentSearchClear:    'Geçmişi temizle',
         ppcaFamilyGroupLabel: (g) => `PPCA — Aile Grubu: ${g}`,
         viewLineRefs:         'Bu hattaki referansları görüntüle',
@@ -902,7 +902,7 @@
         noCapacityProduct:    'Product not tracked in the capacity file: SMF, bearing, etc.',
         noEDriveLines:        'No line with a capacity card was found for this e-Drive reference.',
         multiRecordNote:      (n) => `total of ${n} records`,
-        multiRecordHint:      'This kit appears in multiple rows of the main list. Annual volumes are the sum of all rows; component/line info is shown from the first row.',
+        multiRecordHint:      'This kit appears in multiple rows of the main list. Annual volumes are the sum of all rows; each component is merged from the row that contains it.',
         recentSearchClear:    'Clear history',
         ppcaFamilyGroupLabel: (g) => `PPCA — Family Group: ${g}`,
         viewLineRefs:         'View references on this line',
@@ -1942,7 +1942,31 @@
       if (addToHistory) { navHistory.push({ view: 'kit', kit: kitName }); }
       const matchingRows = globalData.filter(d => d.kit === kitName);
       if (!matchingRows || matchingRows.length === 0) return;
-      const data = matchingRows[0];
+
+      // Kit ana listede birden çok satıra yayılabiliyor (varyant / farklı müşteri; kimi
+      // satır SMF-Rulman gibi kapasitesiz olabilir). Komponent bilgilerini TÜM satırlardan
+      // birleştir: her komponent tipi için o komponenti dolu olan İLK satır kullanılır.
+      // Böylece ilk satır boş olsa bile diğer satırlardaki PPCA/Disc/DMF/e-Drive kaybolmaz.
+      const rows = matchingRows;
+      const firstWith = (test) => rows.find(test) || null;
+      const rPpca  = firstWith(r => r.ppca && r.ppca !== '-');
+      const rDisk  = firstWith(r => r.disk && r.disk !== '-');
+      const rDmf   = firstWith(r => r.dmf && r.dmf !== '-');
+      const rCover = firstWith(r => r.cover && r.cover !== '-');
+      const rDiag  = firstWith(r => r.diaphragm && r.diaphragm !== '-');
+      const rEdrv  = firstWith(r => r.eDriveLines && r.eDriveLines.length);
+      const rCust  = firstWith(r => r.customer) || rows[0];
+      const data = {
+        kit:              rows[0].kit,
+        customer:         rCust.customer,        customerName:    rCust.customerName,
+        customerCountry:  rCust.customerCountry, customerFlag:    rCust.customerFlag,
+        ppca:             rPpca ? rPpca.ppca : '',       ppcaLine:    rPpca ? rPpca.ppcaLine : '',    familyGroup:     rPpca ? rPpca.familyGroup : '',
+        cover:            rCover ? rCover.cover : '',     coverLine:   rCover ? rCover.coverLine : '',
+        diaphragm:        rDiag ? rDiag.diaphragm : '',   diaphragmFurnace: rDiag ? rDiag.diaphragmFurnace : '-', diaphragmLines: rDiag ? rDiag.diaphragmLines : [],
+        disk:             rDisk ? rDisk.disk : '',        diskLine:    rDisk ? rDisk.diskLine : '',    diskFamilyGroup: rDisk ? rDisk.diskFamilyGroup : '',
+        dmf:              rDmf ? rDmf.dmf : '',           dmfLine:     rDmf ? rDmf.dmfLine : '',
+        eDriveLines:      rEdrv ? rEdrv.eDriveLines : []
+      };
 
       // e-Drive referans detayı yıllık bloğu gizlemiş olabilir; normal kit detayında geri göster
       document.getElementById('kd-yearly-block').classList.remove('hidden');
