@@ -1,0 +1,61 @@
+name: Testler
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # Backend hesap testleri hiçbir bağımlılık gerektirmez.
+      - name: Backend hesap testleri
+        run: node tests/backend.test.js
+
+      # Arayüz testi Index.html'i jsdom içinde gerçekten çalıştırır.
+      - name: jsdom kurulumu
+        run: npm install --no-save --no-audit --no-fund jsdom
+
+      - name: Arayüz testleri
+        run: node tests/ui.test.js
+
+      # Sözdizimi kapısı: her <script> bloğu ayrıştırılabilmeli.
+      # (Bu tur, defer eklenince grafikleri kalıcı kapatan bir hata ve sayfanın
+      #  tamamını çökerten bir TDZ hatası yaşandı — kapı o yüzden var.)
+      - name: Index.html script sözdizimi
+        run: |
+          node -e "
+          const s = require('fs').readFileSync('Index.html','utf8');
+          let bad = 0;
+          [...s.matchAll(/<script(?: [^>]*)?>([\s\S]*?)<\/script>/g)].forEach((b, i) => {
+            const c = b[1];
+            if (!c.trim() || c.includes('<?=')) return;
+            try { new Function(c); } catch (e) { bad++; console.error('script #' + i + ': ' + e.message); }
+          });
+          if (bad) { console.error(bad + ' script bloğu ayrıştırılamadı'); process.exit(1); }
+          console.log('Index.html script blokları OK');
+          "
+
+      - name: Code.gs sözdizimi
+        run: node -e "new Function(require('fs').readFileSync('Code.gs','utf8')); new Function(require('fs').readFileSync('Diagnostics.gs','utf8')); console.log('Apps Script dosyaları OK');"
+
+      # i18n paritesi: iki sözlükte de aynı anahtarlar olmalı.
+      - name: i18n paritesi
+        run: |
+          node -e "
+          const s = require('fs').readFileSync('Index.html','utf8');
+          const m = s.match(/const i18n = \{[\s\S]*?\n    \};/);
+          if (!m) { console.error('i18n bloğu bulunamadı'); process.exit(1); }
+          const o = eval('(' + m[0].replace('const i18n = ','').replace(/;\$/,'') + ')');
+          const tr = Object.keys(o.tr), en = Object.keys(o.en);
+          const miss = tr.filter(k => !(k in o.en)).concat(en.filter(k => !(k in o.tr)));
+          if (miss.length) { console.error('eksik i18n anahtarı: ' + miss.join(', ')); process.exit(1); }
+          console.log('i18n paritesi OK (' + tr.length + ' anahtar)');
+          "

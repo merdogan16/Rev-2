@@ -19,8 +19,10 @@ HTML / Vanilla JS / Tailwind CSS (frontend) · Chart.js (grafikler)
 | `Diagnostics.gs` | Yalnızca elle çalıştırılan teşhis fonksiyonları (üretim akışının parçası değil) |
 | `Index.html` | Tüm arayüz: markup + derlenmiş Tailwind CSS + JS |
 | `appsscript.json` | Dağıtım yapılandırması: OAuth kapsamları, `executeAs`, erişim seviyesi |
-| `tests/` | Backend hesap fonksiyonlarının testleri (Node.js, Apps Script gerekmez) |
+| `tests/` | Backend hesap fonksiyonlarının ve arayüzün testleri (Node.js, Apps Script gerekmez) |
 | `tools/` | Tailwind derleme yapılandırması ve SRI notları |
+| `.github/workflows/tests.yml` | Her PR'da testleri ve sözdizimi/i18n kapılarını çalıştıran CI |
+| `.claspignore` | clasp kullanılıyorsa Apps Script'e yalnızca çalışma zamanı dosyalarını gönderir |
 
 ---
 
@@ -147,8 +149,10 @@ Backend ve frontend **aynı** kuralı kullanır.
 - **Güvenlik:** kullanıcı/tablo kaynaklı hiçbir metni `innerHTML`'e kaçışsız
   koymayın (`escapeHtml`). Sunucu tarafı doğrulama, istemci doğrulamasının
   aynısını yapmalıdır. Ham istisna metnini kullanıcıya göstermeyin.
-- **Test:** hesap mantığını değiştirdiyseniz `node tests/backend.test.js`
-  çalıştırın ve yeni davranış için test ekleyin.
+- **Test:** hesap mantığını değiştirdiyseniz `node tests/backend.test.js`,
+  arayüze dokunduysanız `node tests/ui.test.js` çalıştırın ve yeni davranış için
+  test ekleyin. Her ikisi de CI'da her PR'da otomatik çalışır; ayrıca `Index.html`
+  ve `Code.gs` sözdizimi ile iki dilin i18n paritesi kapı olarak kontrol edilir.
 
 ---
 

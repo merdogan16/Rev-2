@@ -1,0 +1,7 @@
+# clasp ile Apps Script'e YALNIZCA çalışma zamanı dosyaları gönderilsin.
+# Testler, derleme araçları ve CI yapılandırması Apps Script projesine ait değil.
+**/**
+!Code.gs
+!Diagnostics.gs
+!Index.html
+!appsscript.json
