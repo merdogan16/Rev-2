@@ -13,16 +13,14 @@ HTML / Vanilla JS / Tailwind CSS (frontend) · Chart.js (grafikler)
 
 ## Dosya yapısı
 
+Proje **iki dosyadan** oluşur; ikisi de Apps Script düzenleyicisine doğrudan
+kopyalanır. Depoda üçüncü dosya olarak yalnızca bu README bulunur.
+
 | Dosya | Rol |
 |---|---|
-| `Code.gs` | Backend: veri okuma, sütun sözleşmesi doğrulaması, önbellek, hat yükü motoru, uyarı e-postaları, geri bildirim, oturum logu |
-| `Diagnostics.gs` | Yalnızca elle çalıştırılan teşhis fonksiyonları (üretim akışının parçası değil) |
+| `Code.gs` | Backend: veri okuma, sütun sözleşmesi doğrulaması, önbellek, hat yükü motoru, uyarı e-postaları, geri bildirim, oturum logu ve (dosyanın sonunda) elle çalıştırılan teşhis fonksiyonları |
 | `Index.html` | Tüm arayüz: markup + derlenmiş Tailwind CSS + JS |
-| `appsscript.json` | Dağıtım yapılandırması: OAuth kapsamları, `executeAs`, erişim seviyesi |
-| `tests/` | Backend hesap fonksiyonlarının ve arayüzün testleri (Node.js, Apps Script gerekmez) |
-| `tools/` | Tailwind derleme yapılandırması ve SRI notları |
-| `.github/workflows/tests.yml` | Her PR'da testleri ve sözdizimi/i18n kapılarını çalıştıran CI |
-| `.claspignore` | clasp kullanılıyorsa Apps Script'e yalnızca çalışma zamanı dosyalarını gönderir |
+| `README.md` | Bu dosya |
 
 ---
 
@@ -76,10 +74,12 @@ kullanılır. Böylece test/canlı ayrımı ve devir teslim kod değiştirmeden 
 
 1. Üç kaynak e-tablonun kimliklerini `CONFIG`'e (ya da Script Properties'e) yazın.
 2. **Dağıtım → Yeni dağıtım → Web uygulaması**
-   - *Yürütme:* **Uygulamaya erişen kullanıcı** (`USER_ACCESSING`)
-   - *Erişim:* **Alan adındaki herkes** (`DOMAIN`)
+   - *Yürütme:* **Uygulamaya erişen kullanıcı**
+   - *Erişim:* **Alan adındaki herkes**
 
-   Bu ayarlar `appsscript.json`'da da kayıtlıdır; ikisinin uyuştuğundan emin olun.
+   > Bu iki ayar güvenlik açısından belirleyicidir ve Apps Script arayüzünde tutulur,
+   > kodda değil. "Yürütme: Ben" seçilirse uygulama, açan kişinin değil **sizin**
+   > yetkinizle çalışır — her kullanıcı sizin erişebildiğiniz veriyi görür.
 3. Apps Script düzenleyicisinde **`kurTetikleyiciler`** fonksiyonunu bir kez
    çalıştırın. Şu tetikleyiciler kurulur:
 
@@ -91,7 +91,7 @@ kullanılır. Böylece test/canlı ayrımı ve devir teslim kod değiştirmeden 
    | `archivePlanSnapshot` | Aylık (ayın 1'i) | Hat yüklerinin anlık görüntüsünü arşive yazar |
 
 4. İlk açılıştan sonra bir hat kartı açıp **grafiğin çizildiğini doğrulayın**
-   (bkz. `tools/SRI-NOTLARI.md`).
+   (bkz. aşağıdaki "Dış betikler ve SRI").
 
 ---
 
@@ -149,12 +149,68 @@ Backend ve frontend **aynı** kuralı kullanır.
 - **Güvenlik:** kullanıcı/tablo kaynaklı hiçbir metni `innerHTML`'e kaçışsız
   koymayın (`escapeHtml`). Sunucu tarafı doğrulama, istemci doğrulamasının
   aynısını yapmalıdır. Ham istisna metnini kullanıcıya göstermeyin.
-- **Test:** hesap mantığını değiştirdiyseniz `node tests/backend.test.js`,
-  arayüze dokunduysanız `node tests/ui.test.js` çalıştırın ve yeni davranış için
-  test ekleyin. Her ikisi de CI'da her PR'da otomatik çalışır; ayrıca `Index.html`
-  ve `Code.gs` sözdizimi ile iki dilin i18n paritesi kapı olarak kontrol edilir.
+- **Doğrulama:** depoda otomatik test yok. Değişiklikten sonra en az şunları elle
+  kontrol edin: (a) kapasitesi tanımlı bir hat yüzde gösteriyor mu, (b) kapasitesi
+  tanımsız bir hat "kapasite yok" yazıyor mu (**asla %0 değil**), (c) grafikler
+  çiziliyor mu, (d) dil değiştirince hiçbir yerde boş metin kalıyor mu.
 
 ---
+
+## Dış betikler ve SRI
+
+`Index.html` iki dış betik yükler ve ikisi de `integrity` (Subresource Integrity)
+karmasıyla doğrulanır — CDN ele geçirilir ya da dosya değişirse tarayıcı betiği
+**çalıştırmaz**.
+
+| Betik | Sürüm | SRI |
+|---|---|---|
+| `chart.umd.js` | Chart.js 4.4.4 | `sha384-G436+Z2nlA8+PNoeRvWdxKbvOf8E/y+lYxqht2iBwNHTQDV5CJr3+AGVj8fGZi5t` |
+| `chartjs-plugin-datalabels.min.js` | 2.2.0 | `sha384-y49Zu59jZHJL/PLKgZPv3k2WI9c0Yp3pWB76V8OBVCb0QBKS8l4Ff3YslzHVX76Y` |
+
+> **İlk dağıtımdan sonra kontrol edin:** bir hat kartı açıp grafiğin çizildiğini
+> doğrulayın. Grafik görünmüyorsa ve tarayıcı konsolunda bir `integrity` hatası
+> varsa karma o dosyayla eşleşmiyor demektir. Bu durumda **uygulamanın geri kalanı
+> çalışmaya devam eder** — `chartsAvailable()` kütüphane yoksa grafikleri atlar,
+> sayılar ve doluluk ızgaraları yine görünür.
+
+Sürüm yükseltirseniz karmayı da yenileyin; eski karma yeni dosyayla eşleşmez ve
+betik sessizce çalışmaz hale gelir.
+
+## Tailwind CSS
+
+`Index.html` içindeki `<style id="tw">…</style>` bloğu **önceden derlenmiş**
+Tailwind çıktısıdır. Eskiden `cdn.tailwindcss.com` (Play CDN) yükleniyordu; o
+yaklaşım tarayıcıya bir CSS derleyicisi indirip stilleri her açılışta yeniden
+üretiyor ve ilk boyamayı geciktiriyordu.
+
+**Var olan sınıfları kullandığınız sürece yeniden derlemeye gerek yok.** Yalnızca
+`Index.html`'e **yeni bir Tailwind sınıfı** eklerseniz gerekir.
+
+> Sınıf adlarını asla parça parça birleştirmeyin (`'text-' + renk` gibi) —
+> Tailwind tarayıcısı bunları göremez ve stil üretilmez. Sınıf adı kaynakta
+> **tam** geçmelidir.
+
+Yeniden derlemek gerekirse (Node.js ister, panoyu kullanan kişinin yapması
+beklenmez):
+
+```
+npx tailwindcss@3.4.17 -i input.css -o out.css --minify
+```
+
+`input.css` içeriği `@tailwind base; @tailwind components; @tailwind utilities;`
+ve yapılandırma şu renk token'larını tanımlar:
+
+| Token | Değer | Kullanım |
+|---|---|---|
+| `valeo-green` | `#89c341` | Yüzey/vurgu rengi ve **karanlık temada** metin |
+| `valeo-greenText` | `#4d8c10` | **Açık temada metin** — beyaz üzerinde 4,6:1 kontrast |
+| `valeo-blue` | `#0072b5` | İkincil vurgu, odak halkası |
+| `valeo-cardInner` | `#e6f0f5` | Kart iç yüzeyi |
+| `valeo-cardBorder` | `#d0e0ea` | Kart kenarlığı |
+
+`#89c341` beyaz üzerinde yalnızca **2,11:1** kontrast verir; WCAG AA normal metin
+için 4,5:1 ister. Bu yüzden metin rengi olarak `valeo-greenText` kullanılır,
+`valeo-green` yüzey/vurgu için kalır.
 
 ## Bilinen sınırlar
 
@@ -167,6 +223,10 @@ Backend ve frontend **aynı** kuralı kullanır.
   değişkenlerini hesaba katar.
 - **ERP entegrasyonu yoktur.** Kaynak e-tablonun nasıl doldurulduğu sistemin
   görüş alanı dışındadır.
+- **Otomatik test ve CI yoktur.** Proje bilinçli olarak iki dosyada tutuluyor
+  (Apps Script'e kopyala-yapıştır ile kurulduğu için), bu yüzden hesap
+  mantığındaki bir değişiklik yalnızca elle doğrulanabilir. Doğrulama listesi
+  için yukarıdaki "Geliştirme kuralları" bölümüne bakın.
 - **Giriş logu kişisel veri içerir** (çalışan e-postası + oturum süresi).
   KVKK/GDPR gereği saklama süresi ve aydınlatma metni tanımlanmalıdır; bu veri
   bugün yalnızca `getUsageStats` ile toplulaştırılmış olarak okunur.
