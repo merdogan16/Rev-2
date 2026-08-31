@@ -90,7 +90,8 @@ var CACHE_MAX_CHUNKS = 12;   // ~1 MB'a kadar veri önbelleklenebilir
 
 function _schemaFingerprint() {
   var keys = Object.keys(MTP_COLUMNS).sort();
-  var sig = keys.map(function (k) { return k + ':' + MTP_COLUMNS[k].col; }).join('|');
+  // 'rev2': sabit sütun okumasına geçiş — eski (otomatik remap'lenmiş) önbelleği geçersiz kılar
+  var sig = 'rev2|' + keys.map(function (k) { return k + ':' + MTP_COLUMNS[k].col; }).join('|');
   var h = 0;
   for (var i = 0; i < sig.length; i++) { h = ((h << 5) - h + sig.charCodeAt(i)) | 0; }
   return 'v' + Math.abs(h).toString(36);
@@ -497,53 +498,6 @@ function clearCache() {
   return { ok: true };
 }
 
-// MTP'27 sütun sözleşmesini başlık satırıyla doğrular.
-// Dönüş: { cols: {alan: indeks}, warnings: [...], ok: bool }
-// Beklenen başlık bulunursa GERÇEK indeks kullanılır — kaynak tabloya sütun
-// eklendiğinde sayılar sessizce kaymaz. Hiçbir başlık eşleşmezse (başlık satırı
-// taşınmış olabilir) sözleşme doğrulanamadı sayılır ve veri gösterilmez.
-function resolveMtpColumns(mtpSheet) {
-  var cols = {}, warnings = [], header = [];
-  Object.keys(MTP_COLUMNS).forEach(function (f) { cols[f] = MTP_COLUMNS[f].col; });
-
-  try {
-    var width = Math.max(mtpSheet.getLastColumn(), MTP_READ_WIDTH);
-    header = mtpSheet.getRange(MTP_HEADER_ROW, 1, 1, width).getValues()[0] || [];
-  } catch (e) {
-    warnings.push({ code: 'HEADER_READ', detail: String(e) });
-    return { cols: cols, warnings: warnings, ok: true, verified: 0 };
-  }
-
-  var norm = header.map(function (h) {
-    return String(h == null ? '' : h).trim().toLowerCase()
-      .replace(/[\u0130\u0131]/g, 'i').replace(/\s+/g, ' ');
-  });
-
-  var verified = 0, moved = [];
-  Object.keys(MTP_COLUMNS).forEach(function (field) {
-    var spec = MTP_COLUMNS[field];
-    var found = -1;
-    for (var i = 0; i < norm.length && found === -1; i++) {
-      if (!norm[i]) continue;
-      for (var j = 0; j < spec.names.length; j++) {
-        if (norm[i] === spec.names[j]) { found = i; break; }
-      }
-    }
-    if (found === -1) return;
-    verified++;
-    if (found !== spec.col) { cols[field] = found; moved.push(field + ': ' + spec.col + '→' + found); }
-  });
-
-  if (verified === 0) {
-    warnings.push({ code: 'SCHEMA_UNVERIFIED', detail: MTP_HEADER_ROW + '. satırda beklenen başlıkların hiçbiri bulunamadı' });
-    return { cols: cols, warnings: warnings, ok: false, verified: 0 };
-  }
-  if (moved.length) {
-    warnings.push({ code: 'SCHEMA_SHIFTED', detail: moved.join(', ') });
-  }
-  return { cols: cols, warnings: warnings, ok: true, verified: verified };
-}
-
 function getSpreadsheetData() {
   const cache = CacheService.getScriptCache();
   const hit = _cacheGet(cache, CACHE_KEY);
@@ -571,17 +525,13 @@ function getSpreadsheetData() {
       throw new Error("Gerekli sekmelerden biri bulunamadı.");
     }
 
-    // Sütun sözleşmesi doğrulaması — veriyi okumadan ÖNCE.
-    const schema = resolveMtpColumns(mtpSheet);
-    schema.warnings.forEach(function (w) { warnings.push(w); });
-    if (!schema.ok) {
-      return {
-        error: 'SCHEMA_UNVERIFIED',
-        message: "Kaynak tablonun (MTP'27) sütun yapısı tanınamadı. Yanlış sayı göstermemek için veri yüklenmedi.",
-        warnings: warnings
-      };
-    }
-    const C = schema.cols;
+    // Sütun indeksleri: sözleşmedeki sabit varsayılanlar. Otomatik başlık-tespiti
+    // KALDIRILDI: yıl başlıkları (2027..2031) gibi tabloda birden çok yerde geçen
+    // metinler yanlış sütuna eşleşip hem hatalı "sütun kaymış" uyarısı üretiyor
+    // hem de yanlış sütundan okuma riski taşıyordu. Bu indeksler uzun süredir
+    // doğru çalışıyor; kaynak tablonun sütun düzeni değişmediği sürece geçerli.
+    const C = {};
+    Object.keys(MTP_COLUMNS).forEach(function (f) { C[f] = MTP_COLUMNS[f].col; });
     
     // 1. HAT BAZLI KAPASİTE VERİLERİ (TÜM BOŞLUKLARI SİLEREK VE BÜYÜK HARFLE EŞLE)
     // 17 sütun okunur (A-Q): 4b'deki e-Drive bloğu da aynı okumayı kullanır (M-Q adetleri için)
@@ -835,7 +785,6 @@ function getSpreadsheetData() {
       pfwMap: pfwMap,
       lineDocs: readLineDocsMap(warnings),
       quality: quality,
-      schema: { verified: schema.verified, total: Object.keys(MTP_COLUMNS).length },
       thresholds: { warn: OCCUPANCY_WARN_PCT, crit: OCCUPANCY_CRIT_PCT },
       warnings: warnings,
       readAt: Date.now(),

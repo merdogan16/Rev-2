@@ -278,11 +278,6 @@
             <span data-i18n="bottleneckOpen">Darboğazlar</span>
             <span id="bottleneckCount" class="ml-auto text-xs font-black px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 hidden"></span>
           </button>
-          <button id="openQuality" class="flex items-center gap-3 px-4 py-2.5 rounded-lg bg-white/60 dark:bg-slate-800 border border-valeo-cardBorder dark:border-slate-700 text-slate-700 dark:text-slate-200 font-semibold text-sm hover:bg-blue-50 dark:hover:bg-slate-700 hover:border-blue-300 focus-visible:ring-2 focus-visible:ring-valeo-blue transition-all shadow-sm">
-            <svg class="w-4 h-4 text-valeo-blue flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/></svg>
-            <span data-i18n="qualityOpen">Veri kalitesi</span>
-            <span id="qualityCount" class="ml-auto text-xs font-black px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 hidden"></span>
-          </button>
           <button id="openHelp" class="flex items-center gap-3 px-4 py-2.5 rounded-lg bg-white/60 dark:bg-slate-800 border border-valeo-cardBorder dark:border-slate-700 text-slate-700 dark:text-slate-200 font-semibold text-sm hover:bg-green-50 dark:hover:bg-slate-700 hover:border-green-300 focus-visible:ring-2 focus-visible:ring-valeo-blue transition-all shadow-sm">
             <svg class="w-4 h-4 text-valeo-greenText dark:text-valeo-greenText flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
             <span data-i18n="helpOpen">Yardım</span>
@@ -356,9 +351,6 @@
     </aside>
 
     <main id="mainArea" class="col-span-12 lg:col-span-9 lg:pt-14">
-
-      <!-- Veri uyarıları: sunucuda yutulan hatalar ve eksik veri artık görünür -->
-      <div id="warningsStrip" role="status" class="hidden mb-3 rounded-lg border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/30 px-4 py-2.5 text-sm text-amber-900 dark:text-amber-200"></div>
 
       <div id="freshness" class="mb-3 flex flex-wrap items-center gap-2 text-xs text-slate-600 dark:text-slate-400"></div>
 
@@ -493,15 +485,6 @@
           <p class="text-sm text-slate-600 dark:text-slate-400 mt-1" data-i18n="whatIfHint">Vardiya ve TRP değiştirerek kapasitenin nasıl değiştiğini görün.</p>
         </div>
         <div id="whatIfBody"></div>
-      </div>
-
-      <!-- Veri kalitesi ekranı -->
-      <div id="qualityView" class="hidden flex flex-col gap-4">
-        <div class="glass-panel rounded-2xl p-5">
-          <h2 class="text-2xl font-black text-slate-800 dark:text-white" data-i18n="qualityTitle">Veri Kalitesi</h2>
-          <p id="qualitySchemaLine" class="text-sm text-slate-600 dark:text-slate-400 mt-1"></p>
-        </div>
-        <div id="qualityBody" class="flex flex-col gap-3"></div>
       </div>
 
       <!-- Yardım kartı -->
@@ -781,7 +764,6 @@
       kit:        'kitDetailView',
       comp:       'compDetailView',
       bottleneck: 'bottleneckView',
-      quality:    'qualityView',
       help:       'helpView'
     };
 
@@ -848,10 +830,7 @@
     let lang = localStorage.getItem('dashLang') || 'tr';
 
     let allKits = [];
-    let dataQuality = null;
-    let dataWarnings = [];
     let dataReadAt = 0;
-    let schemaInfo = null;
     let lineLoads = [];
     let searchDebounceTimer = null;
     let recentSearches = JSON.parse(localStorage.getItem('dashRecentSearches') || '[]');
@@ -953,7 +932,7 @@
           ['Veri ne sıklıkta yenileniyor?', 'Veri 15 dakikaya kadar önbellekte tutulur. Ekranın üstündeki "Veri okunma zamanı" bunu gösterir; "Yenile" düğmesi önbelleği temizleyip tabloları yeniden okur.'],
           ['Kapasitesi aşan hatları nasıl görürüm?', 'Sol menüdeki "Darboğazlar" düğmesi, doluluğu %100\'ü aşan tüm hatları en kritik yıla göre sıralı listeler. Listeyi CSV olarak indirebilirsiniz.'],
           ['Bir görünümü meslektaşımla nasıl paylaşırım?', 'Tarayıcının adres çubuğundaki bağlantıyı kopyalayın — açtığınız kit, arama veya ekran bağlantıda taşınır. Ayrıca darboğaz listesini CSV olarak indirip paylaşabilirsiniz.'],
-          ['Bir sayının yanlış olduğunu düşünüyorum, ne yapmalıyım?', 'Önce kapasite rozetinin üzerine gelip kaynak hücreyi kontrol edin. "Veri kalitesi" ekranı kapasitesi tanımsız hatları ve çift kayıtlı kitleri listeler. Sorun devam ederse sağ alttaki geri bildirim düğmesini kullanın.']
+          ['Bir sayının yanlış olduğunu düşünüyorum, ne yapmalıyım?', 'Önce kapasite rozetinin üzerine gelip kaynak hücreyi kontrol edin. Sorun devam ederse sağ alttaki geri bildirim düğmesini kullanın.']
         ],
         imageNotAllowed:         'Bu görsele erişim izni yok.',
         refContainsTotal:        'Terimi İÇEREN Referansların Toplamı',
@@ -1136,7 +1115,7 @@
           ['How often is data refreshed?', 'Data is cached for up to 15 minutes. The "Data read at" line at the top shows when; the "Refresh" button clears the cache and re-reads the sheets.'],
           ['How do I see lines above capacity?', 'The "Bottlenecks" button in the sidebar lists every line above 100% occupancy, sorted by its worst year. You can download the list as CSV.'],
           ['How do I share a view with a colleague?', 'Copy the link from your browser address bar — the kit, search or screen you opened travels in the link. You can also download the bottleneck list as CSV.'],
-          ['I think a number is wrong. What should I do?', 'First hover the capacity badge to check the source cell. The "Data quality" screen lists lines without capacity and kits spread over several rows. If the problem persists, use the feedback button at the bottom right.']
+          ['I think a number is wrong. What should I do?', 'First hover the capacity badge to check the source cell. If the problem persists, use the feedback button at the bottom right.']
         ],
         imageNotAllowed:         'You do not have permission to view this image.',
         refContainsTotal:        'Total of References CONTAINING the term',
@@ -1506,13 +1485,11 @@
       }
 
       renderFreshness();
-      renderWarnings();
       if (lineLoads.length) renderLinesList();
 
       const lastNav = navHistory[navHistory.length - 1];
       const view = currentView();
       if (view === 'bottleneck') renderBottleneck(false);
-      else if (view === 'quality') renderQuality(false);
       else if (view === 'help') renderHelp(false);
       else if (view === 'kit' && els.kitSelect.value) renderDetails(els.kitSelect.value, false);
       else if (view === 'kit' && lastNav && lastNav.view === 'edref') renderEDriveRefDetail(lastNav.ref, false);
@@ -1578,7 +1555,6 @@
         if (last && last.view === 'edref') hash = 'edrive=' + encodeURIComponent(last.ref);
       } else if (view === 'comp' && els.compSearch.value.trim()) hash = 'ara=' + encodeURIComponent(els.compSearch.value.trim());
       else if (view === 'bottleneck') hash = 'darbogaz';
-      else if (view === 'quality') hash = 'kalite';
       else if (view === 'help') hash = 'yardim';
 
       if ((location.hash || '') === (hash ? '#' + hash : '')) return;
@@ -1597,7 +1573,6 @@
       else if (key === 'edrive' && value)  { els.kitSelect.value = ''; els.compSearch.value = ''; renderEDriveRefDetail(value); }
       else if (key === 'ara' && value)     { els.kitSelect.value = ''; els.compSearch.value = value; renderCompSearchResults(value.toLowerCase()); }
       else if (key === 'darbogaz')         { renderBottleneck(); }
-      else if (key === 'kalite')           { renderQuality(); }
       else if (key === 'yardim')           { renderHelp(); }
       else if (!initial)                   { resetView(); }
     }
@@ -1731,21 +1706,10 @@
           .withSuccessHandler(() => loadData(() => {
             const active = currentView();
             if (active === 'bottleneck') renderBottleneck(false);
-            else if (active === 'quality') renderQuality(false);
           }))
           .withFailureHandler(() => { btn.disabled = false; btn.textContent = t('refreshData'); })
           .clearCache();
       });
-    }
-
-    function renderWarnings() {
-      const el = document.getElementById('warningsStrip');
-      if (!el) return;
-      if (!dataWarnings.length) { el.classList.add('hidden'); el.innerHTML = ''; return; }
-      const label = code => t('warn_' + code) || code;
-      el.innerHTML = `<b>${escapeHtml(t('warningsTitle'))}:</b> ` +
-        dataWarnings.map(w => escapeHtml(label(w.code))).join(' · ');
-      el.classList.remove('hidden');
     }
 
     // ─── Hat listesi ──────────────────────────────────────────────────────────
@@ -1772,9 +1736,6 @@
       const over = overloadedLines(100).length;
       const badge = document.getElementById('bottleneckCount');
       if (badge) { badge.textContent = String(over); badge.classList.toggle('hidden', over === 0); }
-      const qc = document.getElementById('qualityCount');
-      const issues = dataQuality ? (dataQuality.linesWithoutCapacity.length + (dataQuality.duplicateKitTotal || 0)) : 0;
-      if (qc) { qc.textContent = String(issues); qc.classList.toggle('hidden', issues === 0); }
     }
 
     // ─── Darboğaz ekranı ──────────────────────────────────────────────────────
@@ -1809,41 +1770,6 @@
         }));
       }
       showView('bottleneck');
-      renderBreadcrumb();
-    }
-
-    // ─── Veri kalitesi ekranı ─────────────────────────────────────────────────
-    function renderQuality(addToHistory = true) {
-      if (addToHistory) navHistory.push({ view: 'quality' });
-      const body = document.getElementById('qualityBody');
-      const schemaLine = document.getElementById('qualitySchemaLine');
-      if (schemaInfo && schemaLine) schemaLine.textContent = t('qualitySchema')(schemaInfo.verified, schemaInfo.total);
-
-      if (!dataQuality) { body.innerHTML = ''; showView('quality'); return; }
-
-      const section = (title, hint, items, render) => {
-        if (!items || !items.length) return '';
-        return `<div class="glass-panel rounded-xl p-5">
-          <h3 class="text-base font-black text-slate-800 dark:text-white">${escapeHtml(title)} <span class="ml-1 text-sm font-bold text-slate-500 dark:text-slate-400">${items.length}</span></h3>
-          <p class="text-sm text-slate-600 dark:text-slate-400 mt-1 mb-3">${escapeHtml(hint)}</p>
-          <div class="flex flex-wrap gap-1.5">${items.map(render).join('')}</div>
-        </div>`;
-      };
-
-      const chip = (text, cls) =>
-        `<span class="px-2.5 py-1 text-xs rounded-md font-medium border ${cls}">${escapeHtml(text)}</span>`;
-
-      const html = [
-        section(t('qualityNoCapacity'), t('qualityNoCapacityHint'), dataQuality.linesWithoutCapacity,
-          x => chip(x.name + ' (' + x.types + ')', 'bg-amber-50 dark:bg-amber-900/30 text-amber-900 dark:text-amber-200 border-amber-300 dark:border-amber-700')),
-        section(t('qualityUnused'), t('qualityUnusedHint'), dataQuality.unusedLines,
-          x => chip(x.name, 'bg-slate-100 dark:bg-slate-700/60 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-600')),
-        section(t('qualityDuplicate'), t('qualityDuplicateHint'), dataQuality.duplicateKits,
-          x => chip(x.kit + ' ×' + x.rows, 'bg-blue-50 dark:bg-blue-900/30 text-blue-900 dark:text-blue-200 border-blue-300 dark:border-blue-700'))
-      ].filter(Boolean).join('');
-
-      body.innerHTML = html || `<p class="text-base font-semibold text-slate-700 dark:text-slate-300">${escapeHtml(t('qualityClean'))}</p>`;
-      showView('quality');
       renderBreadcrumb();
     }
 
@@ -2010,10 +1936,7 @@
       eDriveData = data.eDriveData || [];
       eDriveLineStats = data.eDriveLineStats || {};
       pfwMap = data.pfwMap || {};
-      dataQuality = data.quality || null;
-      dataWarnings = data.warnings || [];
       dataReadAt = data.readAt || Date.now();
-      schemaInfo = data.schema || null;
       if (data.thresholds) OCC = data.thresholds;
       // Hat → doküman klasörü eşlemesi artık tabloda tutulabiliyor; tablodaki
       // kayıtlar koddaki gömülü listenin üzerine yazar (yeni hat için kod değişmez).
@@ -2027,7 +1950,6 @@
       kits.forEach(k => els.kitSelect.add(new Option(k, k)));
 
       renderLinesList();
-      renderWarnings();
       renderFreshness();
     }
 
@@ -2152,7 +2074,6 @@
     els.resetBtn.addEventListener('click', () => { els.kitSelect.value = ''; els.compSearch.value = ''; navHistory = []; resetView(); closeSidebarOnMobile(); });
 
     document.getElementById('openBottleneck').addEventListener('click', () => { renderBottleneck(); closeSidebarOnMobile(); });
-    document.getElementById('openQuality').addEventListener('click',   () => { renderQuality();   closeSidebarOnMobile(); });
     document.getElementById('openHelp').addEventListener('click',      () => { renderHelp();      closeSidebarOnMobile(); });
     document.getElementById('bottleneckExport').addEventListener('click', () => {
       exportLoadsCsv(overloadedLines(100).map(h => h.line));
@@ -2183,7 +2104,6 @@
       if (entry.view === 'edref')       return t('breadcrumbEDriveRef')(entry.ref);
       if (entry.view === 'search')      return t('breadcrumbSearch')(entry.term);
       if (entry.view === 'bottleneck')  return t('bottleneckTitle');
-      if (entry.view === 'quality')     return t('qualityTitle');
       if (entry.view === 'help')        return t('helpTitle');
       if (entry.view === 'ppca-group')  { const g = PPCA_GROUPS[entry.group]; return g ? (g[lang] || g.tr) : entry.group; }
       if (entry.view === 'disk-group')  { const g = DISK_GROUPS[entry.group]; return g ? (g[lang] || g.tr) : entry.group; }
@@ -2197,8 +2117,6 @@
       diskGroupFilter = null;
       if (entry.view === 'bottleneck') {
         renderBottleneck(false);
-      } else if (entry.view === 'quality') {
-        renderQuality(false);
       } else if (entry.view === 'help') {
         renderHelp(false);
       } else if (entry.view === 'kit') {
